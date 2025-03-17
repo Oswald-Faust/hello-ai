@@ -8,15 +8,21 @@ const CompanySchema = new Schema({
   name: {
     type: String,
     required: [true, 'Le nom de l\'entreprise est requis'],
+    trim: true,
+    unique: true
+  },
+  description: {
+    type: String,
     trim: true
   },
   address: {
     street: String,
     city: String,
-    zipCode: String,
+    state: String,
+    postalCode: String,
     country: String
   },
-  phoneNumber: {
+  phone: {
     type: String,
     trim: true
   },
@@ -30,88 +36,14 @@ const CompanySchema = new Schema({
     type: String,
     trim: true
   },
-  industry: {
-    type: String,
-    trim: true
-  },
-  size: {
-    type: String,
-    enum: ['1-10', '11-50', '51-200', '201-500', '501-1000', '1000+'],
-    default: '1-10'
-  },
-  logo: {
-    type: String,
-    trim: true
-  },
-  active: {
+  isActive: {
     type: Boolean,
     default: true
   },
-  subscription: {
-    plan: {
-      type: String,
-      enum: ['free', 'basic', 'premium', 'enterprise'],
-      default: 'free'
-    },
-    startDate: {
-      type: Date,
-      default: Date.now
-    },
-    endDate: {
-      type: Date
-    },
-    status: {
-      type: String,
-      enum: ['active', 'expired', 'cancelled'],
-      default: 'active'
-    }
-  },
   settings: {
-    callHandling: {
-      welcomeMessage: {
-        type: String,
-        default: 'Bienvenue chez notre entreprise. Comment puis-je vous aider aujourd\'hui?'
-      },
-      transferMessage: {
-        type: String,
-        default: 'Je vais vous transférer à un de nos agents. Veuillez patienter un instant.'
-      },
-      voicemail: {
-        enabled: {
-          type: Boolean,
-          default: true
-        },
-        message: {
-          type: String,
-          default: 'Nous ne sommes pas disponibles pour le moment. Veuillez laisser un message après le bip.'
-        }
-      }
-    },
-    businessHours: {
-      monday: { start: String, end: String },
-      tuesday: { start: String, end: String },
-      wednesday: { start: String, end: String },
-      thursday: { start: String, end: String },
-      friday: { start: String, end: String },
-      saturday: { start: String, end: String },
-      sunday: { start: String, end: String }
-    },
-    notifications: {
-      email: {
-        enabled: {
-          type: Boolean,
-          default: true
-        },
-        recipients: [String]
-      },
-      sms: {
-        enabled: {
-          type: Boolean,
-          default: false
-        },
-        recipients: [String]
-      }
-    }
+    type: Map,
+    of: mongoose.Schema.Types.Mixed,
+    default: {}
   }
 }, {
   timestamps: true
@@ -119,7 +51,7 @@ const CompanySchema = new Schema({
 
 // Créer des index pour améliorer les performances des recherches
 CompanySchema.index({ name: 1 });
-CompanySchema.index({ 'subscription.status': 1 });
+CompanySchema.index({ 'address.city': 1, 'address.country': 1 });
 
 // Méthode pour vérifier si l'entreprise est ouverte à un moment donné
 CompanySchema.methods.isOpenNow = function() {

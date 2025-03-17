@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const Schema = mongoose.Schema;
 
 /**
@@ -20,18 +22,18 @@ const UserSchema = new Schema({
     type: String,
     required: [true, 'L\'email est requis'],
     unique: true,
-    lowercase: true,
     trim: true,
+    lowercase: true,
     match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Veuillez fournir un email valide']
   },
   password: {
     type: String,
     required: [true, 'Le mot de passe est requis'],
-    minlength: [6, 'Le mot de passe doit contenir au moins 6 caractères']
+    minlength: [8, 'Le mot de passe doit contenir au moins 8 caractères']
   },
   role: {
     type: String,
-    enum: ['admin', 'manager', 'user'],
+    enum: ['user', 'admin', 'superadmin'],
     default: 'user'
   },
   company: {
@@ -43,13 +45,12 @@ const UserSchema = new Schema({
     type: String,
     trim: true
   },
-  active: {
+  isActive: {
     type: Boolean,
     default: true
   },
   lastLogin: {
-    type: Date,
-    default: null
+    type: Date
   },
   preferences: {
     language: {
@@ -77,7 +78,7 @@ const UserSchema = new Schema({
     }
   },
   resetPasswordToken: String,
-  resetPasswordExpires: Date
+  resetPasswordExpire: Date
 }, {
   timestamps: true,
   toJSON: {
@@ -94,7 +95,7 @@ UserSchema.index({ company: 1 });
 
 // Méthode pour comparer les mots de passe
 UserSchema.methods.comparePassword = async function(candidatePassword) {
-  return bcrypt.compare(candidatePassword, this.password);
+  return await bcrypt.compare(candidatePassword, this.password);
 };
 
 // Méthode pour obtenir le nom complet
@@ -104,20 +105,37 @@ UserSchema.virtual('fullName').get(function() {
 
 // Middleware pour hasher le mot de passe avant de sauvegarder
 UserSchema.pre('save', async function(next) {
-  // Seulement hasher le mot de passe s'il a été modifié (ou est nouveau)
-  if (!this.isModified('password')) return next();
-  
-  try {
-    // Générer un salt
-    const salt = await bcrypt.genSalt(10);
-    
-    // Hasher le mot de passe avec le salt
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error) {
-    next(error);
+  if (!this.isModified('password')) {
+    return next();
   }
+  
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
 });
+
+// Générer un token JWT
+UserSchema.methods.generateAuthToken = function() {
+  return jwt.sign(
+    { id: this._id, role: this.role },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRATION }
+  );
+};
+
+// Générer un token de réinitialisation de mot de passe
+UserSchema.methods.generateResetPasswordToken = function() {
+  const resetToken = crypto.randomBytes(20).toString('hex');
+  
+  this.resetPasswordToken = crypto
+    .createHash('sha256')
+    .update(resetToken)
+    .digest('hex');
+    
+  this.resetPasswordExpire = Date.now() + 30 * 60 * 1000; // 30 minutes
+  
+  return resetToken;
+};
 
 const User = mongoose.model('User', UserSchema);
 

@@ -3,6 +3,8 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const Company = require('../models/Company');
 const logger = require('../utils/logger');
+const { promisify } = require('util');
+const crypto = require('crypto');
 
 /**
  * Enregistrer un nouvel utilisateur
@@ -10,52 +12,25 @@ const logger = require('../utils/logger');
  * @param {Object} res - Réponse Express
  * @param {Function} next - Fonction next d'Express
  */
-exports.register = async (req, res, next) => {
-  try {
-    const { firstName, lastName, email, password, companyId, role } = req.body;
-    
-    // Vérifier si l'utilisateur existe déjà
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Un utilisateur avec cet email existe déjà'
-      });
-    }
-    
-    // Vérifier si l'entreprise existe
-    const company = await Company.findById(companyId);
-    if (!company) {
-      return res.status(404).json({
-        message: 'Entreprise non trouvée'
-      });
-    }
-    
-    // Créer un nouvel utilisateur
-    const user = new User({
-      firstName,
-      lastName,
-      email,
-      password, // Le mot de passe sera hashé dans le modèle
-      company: companyId,
-      role: role || 'user' // Par défaut, le rôle est 'user'
-    });
-    
-    // Sauvegarder l'utilisateur
-    await user.save();
-    
-    logger.info(`Nouvel utilisateur créé: ${user.email}`);
-    
-    // Générer un token JWT
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRATION }
-    );
-    
-    // Retourner la réponse
-    res.status(201).json({
-      status: 'success',
+const catchAsync = fn => (req, res, next) => {
+  Promise.resolve(fn(req, res, next)).catch(next);
+};
+
+// Envoyer le token avec la réponse
+const sendTokenResponse = (user, statusCode, res) => {
+  const token = user.generateAuthToken();
+
+  const cookieOptions = {
+    expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 heures
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production'
+  };
+
+  res
+    .status(statusCode)
+    .cookie('token', token, cookieOptions)
+    .json({
+      success: true,
       token,
       user: {
         _id: user._id,
@@ -66,402 +41,196 @@ exports.register = async (req, res, next) => {
         company: user.company
       }
     });
-  } catch (error) {
-    logger.error(`Erreur lors de l'enregistrement: ${error.message}`);
-    next(error);
-  }
 };
 
-/**
- * Connecter un utilisateur
- * @param {Object} req - Requête Express
- * @param {Object} res - Réponse Express
- * @param {Function} next - Fonction next d'Express
- */
-exports.login = async (req, res, next) => {
-  try {
-    const { email, password } = req.body;
-    
-    // Vérifier si l'utilisateur existe
-    const user = await User.findOne({ email }).populate('company', 'name');
-    if (!user) {
-      return res.status(401).json({
-        status: 'error',
-        message: 'Email ou mot de passe incorrect'
-      });
-    }
-    
-    // Vérifier si l'utilisateur est actif
-    if (!user.active) {
-      return res.status(401).json({
-        message: 'Votre compte a été désactivé. Veuillez contacter l\'administrateur.'
-      });
-    }
-    
-    // Vérifier le mot de passe
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      return res.status(401).json({
-        status: 'error',
-        message: 'Email ou mot de passe incorrect'
-      });
-    }
-    
-    // Mettre à jour la date de dernière connexion
-    user.lastLogin = new Date();
-    await user.save();
-    
-    // Générer un token JWT
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRATION }
-    );
-    
-    logger.info(`Utilisateur connecté: ${user.email}`);
-    
-    // Retourner la réponse
-    res.status(200).json({
-      status: 'success',
-      token,
-      user: {
-        _id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        role: user.role,
-        company: user.company
-      }
+// @desc    Inscription d'un nouvel utilisateur
+// @route   POST /api/auth/register
+// @access  Public
+exports.register = catchAsync(async (req, res, next) => {
+  const { firstName, lastName, email, password, companyId } = req.body;
+
+  // Vérifier si l'entreprise existe
+  const company = await Company.findById(companyId);
+  if (!company) {
+    return res.status(400).json({
+      success: false,
+      message: 'Entreprise non trouvée'
     });
-  } catch (error) {
-    logger.error(`Erreur lors de la connexion: ${error.message}`);
-    next(error);
   }
-};
 
-/**
- * Déconnecter un utilisateur
- * @param {Object} req - Requête Express
- * @param {Object} res - Réponse Express
- */
-exports.logout = (req, res) => {
-  // Dans une implémentation JWT simple, il n'y a pas besoin de déconnexion côté serveur
-  // Le client doit simplement supprimer le token
+  // Créer l'utilisateur
+  const user = await User.create({
+    firstName,
+    lastName,
+    email,
+    password,
+    company: companyId
+  });
+
+  sendTokenResponse(user, 201, res);
+});
+
+// @desc    Connexion d'un utilisateur
+// @route   POST /api/auth/login
+// @access  Public
+exports.login = catchAsync(async (req, res, next) => {
+  const { email, password } = req.body;
+
+  // Vérifier si email et mot de passe sont fournis
+  if (!email || !password) {
+    return res.status(400).json({
+      success: false,
+      message: 'Veuillez fournir un email et un mot de passe'
+    });
+  }
+
+  // Vérifier si l'utilisateur existe
+  const user = await User.findOne({ email }).select('+password').populate('company');
+  if (!user) {
+    return res.status(401).json({
+      success: false,
+      message: 'Identifiants invalides'
+    });
+  }
+
+  // Vérifier si le mot de passe correspond
+  const isMatch = await user.comparePassword(password);
+  if (!isMatch) {
+    return res.status(401).json({
+      success: false,
+      message: 'Identifiants invalides'
+    });
+  }
+
+  // Mettre à jour la date de dernière connexion
+  user.lastLogin = Date.now();
+  await user.save();
+
+  sendTokenResponse(user, 200, res);
+});
+
+// @desc    Déconnexion de l'utilisateur
+// @route   POST /api/auth/logout
+// @access  Private
+exports.logout = catchAsync(async (req, res, next) => {
+  res.cookie('token', 'none', {
+    expires: new Date(Date.now() + 10 * 1000),
+    httpOnly: true
+  });
+
   res.status(200).json({
-    status: 'success',
+    success: true,
     message: 'Déconnexion réussie'
   });
-};
+});
 
-/**
- * Obtenir les informations de l'utilisateur connecté
- * @param {Object} req - Requête Express
- * @param {Object} res - Réponse Express
- * @param {Function} next - Fonction next d'Express
- */
-exports.getCurrentUser = async (req, res, next) => {
-  try {
-    // L'utilisateur est déjà disponible dans req.user grâce au middleware d'authentification
-    const user = await User.findById(req.user.id).populate('company', 'name');
-    
-    if (!user) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Utilisateur non trouvé'
-      });
-    }
+// @desc    Obtenir le profil de l'utilisateur connecté
+// @route   GET /api/auth/me
+// @access  Private
+exports.getMe = catchAsync(async (req, res, next) => {
+  const user = await User.findById(req.user.id).populate('company');
 
-    res.status(200).json({
-      status: 'success',
-      user: {
-        _id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        role: user.role,
-        company: user.company
-      }
-    });
-  } catch (error) {
-    logger.error(`Erreur lors de la récupération de l'utilisateur: ${error.message}`);
-    next(error);
-  }
-};
+  res.status(200).json({
+    success: true,
+    user
+  });
+});
 
-/**
- * Rafraîchir le token d'authentification
- * @param {Object} req - Requête Express
- * @param {Object} res - Réponse Express
- * @param {Function} next - Fonction next d'Express
- */
-exports.refreshToken = async (req, res, next) => {
-  try {
-    const { token } = req.body;
+// @desc    Mettre à jour le profil
+// @route   PUT /api/auth/profile
+// @access  Private
+exports.updateProfile = catchAsync(async (req, res, next) => {
+  const fieldsToUpdate = {
+    firstName: req.body.firstName,
+    lastName: req.body.lastName,
+    email: req.body.email
+  };
 
-    if (!token) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Token non fourni'
-      });
-    }
+  const user = await User.findByIdAndUpdate(req.user.id, fieldsToUpdate, {
+    new: true,
+    runValidators: true
+  }).populate('company');
 
-    // Vérifier le token
-    let decoded;
-    try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET);
-    } catch (error) {
-      return res.status(401).json({
-        status: 'error',
-        message: 'Token invalide ou expiré'
-      });
-    }
+  res.status(200).json({
+    success: true,
+    user
+  });
+});
 
-    // Vérifier si l'utilisateur existe toujours
-    const user = await User.findById(decoded.id);
-    if (!user) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Utilisateur non trouvé'
-      });
-    }
+// @desc    Mettre à jour le mot de passe
+// @route   PUT /api/auth/password
+// @access  Private
+exports.updatePassword = catchAsync(async (req, res, next) => {
+  const user = await User.findById(req.user.id).select('+password');
 
-    // Générer un nouveau token
-    const newToken = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRATION }
-    );
-
-    res.status(200).json({
-      status: 'success',
-      token: newToken
-    });
-  } catch (error) {
-    logger.error(`Erreur lors du rafraîchissement du token: ${error.message}`);
-    next(error);
-  }
-};
-
-/**
- * Récupérer le profil de l'utilisateur connecté
- * @param {Object} req - Requête Express
- * @param {Object} res - Réponse Express
- */
-exports.getProfile = async (req, res) => {
-  try {
-    const user = await User.findById(req.user._id).populate('company', 'name');
-    
-    if (!user) {
-      return res.status(404).json({
-        message: 'Utilisateur non trouvé'
-      });
-    }
-    
-    return res.status(200).json(user);
-  } catch (error) {
-    logger.error('Erreur lors de la récupération du profil:', error);
-    return res.status(500).json({
-      message: 'Erreur lors de la récupération du profil',
-      error: error.message
+  // Vérifier le mot de passe actuel
+  if (!(await user.comparePassword(req.body.currentPassword))) {
+    return res.status(401).json({
+      success: false,
+      message: 'Mot de passe actuel incorrect'
     });
   }
-};
 
-/**
- * Mettre à jour le profil de l'utilisateur connecté
- * @param {Object} req - Requête Express
- * @param {Object} res - Réponse Express
- */
-exports.updateProfile = async (req, res) => {
-  try {
-    const { firstName, lastName, phoneNumber, preferences } = req.body;
-    
-    // Créer un objet avec les champs à mettre à jour
-    const updateData = {};
-    if (firstName) updateData.firstName = firstName;
-    if (lastName) updateData.lastName = lastName;
-    if (phoneNumber) updateData.phoneNumber = phoneNumber;
-    if (preferences) updateData.preferences = { ...req.user.preferences, ...preferences };
-    
-    const user = await User.findByIdAndUpdate(
-      req.user._id,
-      updateData,
-      { new: true, runValidators: true }
-    ).populate('company', 'name');
-    
-    if (!user) {
-      return res.status(404).json({
-        message: 'Utilisateur non trouvé'
-      });
-    }
-    
-    logger.info(`Profil mis à jour pour: ${user.email}`);
-    
-    return res.status(200).json({
-      message: 'Profil mis à jour avec succès',
-      user
-    });
-  } catch (error) {
-    logger.error('Erreur lors de la mise à jour du profil:', error);
-    return res.status(500).json({
-      message: 'Erreur lors de la mise à jour du profil',
-      error: error.message
+  user.password = req.body.newPassword;
+  await user.save();
+
+  sendTokenResponse(user, 200, res);
+});
+
+// @desc    Mot de passe oublié
+// @route   POST /api/auth/forgot-password
+// @access  Public
+exports.forgotPassword = catchAsync(async (req, res, next) => {
+  const user = await User.findOne({ email: req.body.email });
+
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: 'Aucun utilisateur trouvé avec cet email'
     });
   }
-};
 
-/**
- * Changer le mot de passe de l'utilisateur connecté
- * @param {Object} req - Requête Express
- * @param {Object} res - Réponse Express
- */
-exports.changePassword = async (req, res) => {
-  try {
-    const { currentPassword, newPassword } = req.body;
-    
-    // Vérifier si les mots de passe sont fournis
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({
-        message: 'Le mot de passe actuel et le nouveau mot de passe sont requis'
-      });
-    }
-    
-    // Vérifier si le nouveau mot de passe est assez long
-    if (newPassword.length < 8) {
-      return res.status(400).json({
-        message: 'Le nouveau mot de passe doit contenir au moins 8 caractères'
-      });
-    }
-    
-    const user = await User.findById(req.user._id);
-    
-    // Vérifier le mot de passe actuel
-    const isPasswordValid = await user.comparePassword(currentPassword);
-    if (!isPasswordValid) {
-      return res.status(401).json({
-        message: 'Mot de passe actuel incorrect'
-      });
-    }
-    
-    // Mettre à jour le mot de passe
-    user.password = newPassword;
-    await user.save();
-    
-    logger.info(`Mot de passe changé pour: ${user.email}`);
-    
-    return res.status(200).json({
-      message: 'Mot de passe changé avec succès'
-    });
-  } catch (error) {
-    logger.error('Erreur lors du changement de mot de passe:', error);
-    return res.status(500).json({
-      message: 'Erreur lors du changement de mot de passe',
-      error: error.message
+  // Obtenir le token de réinitialisation
+  const resetToken = user.generateResetPasswordToken();
+  await user.save({ validateBeforeSave: false });
+
+  // TODO: Envoyer l'email avec le token
+  // Pour l'instant, nous retournons simplement le token
+  res.status(200).json({
+    success: true,
+    resetToken
+  });
+});
+
+// @desc    Réinitialiser le mot de passe
+// @route   PUT /api/auth/reset-password/:token
+// @access  Public
+exports.resetPassword = catchAsync(async (req, res, next) => {
+  // Obtenir le token hashé
+  const resetPasswordToken = crypto
+    .createHash('sha256')
+    .update(req.params.token)
+    .digest('hex');
+
+  const user = await User.findOne({
+    resetPasswordToken,
+    resetPasswordExpire: { $gt: Date.now() }
+  });
+
+  if (!user) {
+    return res.status(400).json({
+      success: false,
+      message: 'Token invalide ou expiré'
     });
   }
-};
 
-/**
- * Demander une réinitialisation de mot de passe
- * @param {Object} req - Requête Express
- * @param {Object} res - Réponse Express
- */
-exports.requestPasswordReset = async (req, res) => {
-  try {
-    const { email } = req.body;
-    
-    const user = await User.findOne({ email });
-    
-    // Ne pas révéler si l'utilisateur existe ou non
-    if (!user) {
-      return res.status(200).json({
-        message: 'Si un compte existe avec cet email, un lien de réinitialisation a été envoyé'
-      });
-    }
-    
-    // Générer un token de réinitialisation
-    const resetToken = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET,
-      { expiresIn: '1h' }
-    );
-    
-    // Stocker le token et sa date d'expiration
-    user.resetPasswordToken = resetToken;
-    user.resetPasswordExpires = Date.now() + 3600000; // 1 heure
-    await user.save();
-    
-    // TODO: Envoyer un email avec le lien de réinitialisation
-    // Le lien devrait être quelque chose comme: 
-    // `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`
-    
-    logger.info(`Demande de réinitialisation de mot de passe pour: ${user.email}`);
-    
-    return res.status(200).json({
-      message: 'Si un compte existe avec cet email, un lien de réinitialisation a été envoyé'
-    });
-  } catch (error) {
-    logger.error('Erreur lors de la demande de réinitialisation de mot de passe:', error);
-    return res.status(500).json({
-      message: 'Erreur lors de la demande de réinitialisation de mot de passe',
-      error: error.message
-    });
-  }
-};
+  // Définir le nouveau mot de passe
+  user.password = req.body.password;
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpire = undefined;
+  await user.save();
 
-/**
- * Réinitialiser le mot de passe avec un token
- * @param {Object} req - Requête Express
- * @param {Object} res - Réponse Express
- */
-exports.resetPassword = async (req, res) => {
-  try {
-    const { token, newPassword } = req.body;
-    
-    // Vérifier si le token et le nouveau mot de passe sont fournis
-    if (!token || !newPassword) {
-      return res.status(400).json({
-        message: 'Le token et le nouveau mot de passe sont requis'
-      });
-    }
-    
-    // Vérifier si le nouveau mot de passe est assez long
-    if (newPassword.length < 8) {
-      return res.status(400).json({
-        message: 'Le nouveau mot de passe doit contenir au moins 8 caractères'
-      });
-    }
-    
-    // Trouver l'utilisateur avec ce token
-    const user = await User.findOne({
-      resetPasswordToken: token,
-      resetPasswordExpires: { $gt: Date.now() }
-    });
-    
-    if (!user) {
-      return res.status(400).json({
-        message: 'Le token de réinitialisation est invalide ou a expiré'
-      });
-    }
-    
-    // Mettre à jour le mot de passe
-    user.password = newPassword;
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
-    await user.save();
-    
-    logger.info(`Mot de passe réinitialisé pour: ${user.email}`);
-    
-    return res.status(200).json({
-      message: 'Mot de passe réinitialisé avec succès'
-    });
-  } catch (error) {
-    logger.error('Erreur lors de la réinitialisation du mot de passe:', error);
-    return res.status(500).json({
-      message: 'Erreur lors de la réinitialisation du mot de passe',
-      error: error.message
-    });
-  }
-};
+  sendTokenResponse(user, 200, res);
+});
 
 module.exports = exports; 

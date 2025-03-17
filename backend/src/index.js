@@ -12,6 +12,8 @@ const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const { createWriteStream } = require('fs');
 const path = require('path');
+const mongoose = require('mongoose');
+const cookieParser = require('cookie-parser');
 
 // Initialisation de l'application Express
 const app = express();
@@ -33,6 +35,7 @@ app.use(morgan('combined', { stream: { write: message => logger.info(message.tri
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(compression());
+app.use(cookieParser());
 
 // Routes
 app.use('/api', routes);
@@ -73,6 +76,23 @@ app.use(require('./middleware/notFoundHandler'));
 
 // Middleware de gestion des erreurs
 app.use(require('./middleware/errorHandler'));
+
+// Connexion à MongoDB
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+.then(() => console.log('Connecté à MongoDB'))
+.catch(err => console.error('Erreur de connexion à MongoDB:', err));
+
+// Gestion des erreurs
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({
+    success: false,
+    message: 'Une erreur est survenue sur le serveur'
+  });
+});
 
 // Démarrage du serveur
 const PORT = process.env.PORT || 3001;
