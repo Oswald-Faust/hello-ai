@@ -1,0 +1,480 @@
+const Company = require('../models/Company');
+const twilioService = require('../services/twilioService');
+const logger = require('../utils/logger');
+const { errorResponse, successResponse } = require('../utils/responseHandler');
+
+/**
+ * Créer une nouvelle entreprise
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ * @param {Function} next - Fonction next d'Express
+ */
+exports.createCompany = async (req, res, next) => {
+  try {
+    const companyData = req.body;
+    
+    // Créer l'entreprise dans la base de données
+    const company = new Company(companyData);
+    await company.save();
+    
+    logger.info(`Nouvelle entreprise créée: ${company.name}`);
+    
+    return successResponse(res, 201, 'Entreprise créée avec succès', { company });
+  } catch (error) {
+    logger.error('Erreur lors de la création de l\'entreprise:', error);
+    next(error);
+  }
+};
+
+/**
+ * Récupérer toutes les entreprises
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ * @param {Function} next - Fonction next d'Express
+ */
+exports.getAllCompanies = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 10, sort = '-createdAt', active } = req.query;
+    
+    const query = {};
+    if (active !== undefined) {
+      query.active = active === 'true';
+    }
+    
+    const options = {
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+      sort
+    };
+    
+    const companies = await Company.find(query)
+      .sort(sort)
+      .skip((options.page - 1) * options.limit)
+      .limit(options.limit);
+    
+    const total = await Company.countDocuments(query);
+    
+    return successResponse(res, 200, 'Entreprises récupérées avec succès', {
+      companies,
+      pagination: {
+        total,
+        page: options.page,
+        limit: options.limit,
+        pages: Math.ceil(total / options.limit)
+      }
+    });
+  } catch (error) {
+    logger.error('Erreur lors de la récupération des entreprises:', error);
+    next(error);
+  }
+};
+
+/**
+ * Récupérer une entreprise par son ID
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ * @param {Function} next - Fonction next d'Express
+ */
+exports.getCompanyById = async (req, res, next) => {
+  try {
+    const { companyId } = req.params;
+    
+    const company = await Company.findById(companyId);
+    
+    if (!company) {
+      return errorResponse(res, 404, 'Entreprise non trouvée');
+    }
+    
+    return successResponse(res, 200, 'Entreprise récupérée avec succès', { company });
+  } catch (error) {
+    logger.error('Erreur lors de la récupération de l\'entreprise:', error);
+    next(error);
+  }
+};
+
+/**
+ * Mettre à jour une entreprise
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ * @param {Function} next - Fonction next d'Express
+ */
+exports.updateCompany = async (req, res, next) => {
+  try {
+    const { companyId } = req.params;
+    const updateData = req.body;
+    
+    const company = await Company.findByIdAndUpdate(
+      companyId,
+      updateData,
+      { new: true, runValidators: true }
+    );
+    
+    if (!company) {
+      return errorResponse(res, 404, 'Entreprise non trouvée');
+    }
+    
+    logger.info(`Entreprise mise à jour: ${company.name}`);
+    
+    return successResponse(res, 200, 'Entreprise mise à jour avec succès', { company });
+  } catch (error) {
+    logger.error('Erreur lors de la mise à jour de l\'entreprise:', error);
+    next(error);
+  }
+};
+
+/**
+ * Supprimer une entreprise
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ * @param {Function} next - Fonction next d'Express
+ */
+exports.deleteCompany = async (req, res, next) => {
+  try {
+    const { companyId } = req.params;
+    
+    const company = await Company.findByIdAndDelete(companyId);
+    
+    if (!company) {
+      return errorResponse(res, 404, 'Entreprise non trouvée');
+    }
+    
+    logger.info(`Entreprise supprimée: ${company.name}`);
+    
+    return successResponse(res, 200, 'Entreprise supprimée avec succès');
+  } catch (error) {
+    logger.error('Erreur lors de la suppression de l\'entreprise:', error);
+    next(error);
+  }
+};
+
+/**
+ * Activer/désactiver une entreprise
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ * @param {Function} next - Fonction next d'Express
+ */
+exports.toggleCompanyStatus = async (req, res, next) => {
+  try {
+    const { companyId } = req.params;
+    
+    const company = await Company.findById(companyId);
+    
+    if (!company) {
+      return errorResponse(res, 404, 'Entreprise non trouvée');
+    }
+    
+    company.active = !company.active;
+    await company.save();
+    
+    const status = company.active ? 'activée' : 'désactivée';
+    return successResponse(res, 200, `Entreprise ${status} avec succès`, { company });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Mettre à jour l'abonnement d'une entreprise
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ * @param {Function} next - Fonction next d'Express
+ */
+exports.updateSubscription = async (req, res, next) => {
+  try {
+    const { plan, endDate, status } = req.body;
+    
+    const { companyId } = req.params;
+    
+    const company = await Company.findById(companyId);
+    
+    if (!company) {
+      return errorResponse(res, 404, 'Entreprise non trouvée');
+    }
+    
+    if (plan) company.subscription.plan = plan;
+    if (endDate) company.subscription.endDate = new Date(endDate);
+    if (status) company.subscription.status = status;
+    
+    await company.save();
+    
+    return successResponse(res, 200, 'Abonnement mis à jour avec succès', { company });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Acheter un numéro de téléphone pour une entreprise
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
+exports.purchasePhoneNumber = async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    const { areaCode, country } = req.body;
+    
+    const company = await Company.findById(companyId);
+    
+    if (!company) {
+      return res.status(404).json({
+        message: 'Entreprise non trouvée'
+      });
+    }
+    
+    // Si l'entreprise a déjà un numéro, vérifier si on veut le remplacer
+    if (company.twilioPhoneNumber) {
+      if (!req.body.replace) {
+        return res.status(400).json({
+          message: 'L\'entreprise possède déjà un numéro de téléphone. Définissez replace=true pour le remplacer.'
+        });
+      }
+    }
+    
+    // Acheter un nouveau numéro via Twilio
+    const purchasedNumber = await twilioService.purchasePhoneNumber({
+      areaCode,
+      country,
+      friendlyName: `Lydia - ${company.name}`
+    });
+    
+    // Configurer le webhook pour le numéro
+    const webhookUrl = `${process.env.API_BASE_URL || 'http://localhost:3001'}/api/calls/incoming`;
+    await twilioService.configureWebhook(purchasedNumber.sid, webhookUrl);
+    
+    // Mettre à jour l'entreprise avec le nouveau numéro
+    company.twilioPhoneNumber = purchasedNumber.phoneNumber;
+    company.twilioPhoneNumberSid = purchasedNumber.sid;
+    await company.save();
+    
+    logger.info(`Numéro de téléphone acheté pour ${company.name}: ${purchasedNumber.phoneNumber}`);
+    
+    return res.status(200).json({
+      message: 'Numéro de téléphone acheté avec succès',
+      phoneNumber: purchasedNumber.phoneNumber
+    });
+  } catch (error) {
+    logger.error('Erreur lors de l\'achat du numéro de téléphone:', error);
+    return res.status(500).json({
+      message: 'Erreur lors de l\'achat du numéro de téléphone',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Mettre à jour la configuration vocale d'une entreprise
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
+exports.updateVoiceConfig = async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    const voiceConfig = req.body;
+    
+    const company = await Company.findById(companyId);
+    
+    if (!company) {
+      return res.status(404).json({
+        message: 'Entreprise non trouvée'
+      });
+    }
+    
+    // Mettre à jour la configuration vocale
+    company.voiceConfig = {
+      ...company.voiceConfig,
+      ...voiceConfig
+    };
+    
+    await company.save();
+    
+    logger.info(`Configuration vocale mise à jour pour ${company.name}`);
+    
+    return res.status(200).json({
+      message: 'Configuration vocale mise à jour avec succès',
+      voiceConfig: company.voiceConfig
+    });
+  } catch (error) {
+    logger.error('Erreur lors de la mise à jour de la configuration vocale:', error);
+    return res.status(500).json({
+      message: 'Erreur lors de la mise à jour de la configuration vocale',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Ajouter une réponse personnalisée
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
+exports.addCustomResponse = async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    const { keyword, response } = req.body;
+    
+    if (!keyword || !response) {
+      return res.status(400).json({
+        message: 'Le mot-clé et la réponse sont requis'
+      });
+    }
+    
+    const company = await Company.findById(companyId);
+    
+    if (!company) {
+      return res.status(404).json({
+        message: 'Entreprise non trouvée'
+      });
+    }
+    
+    // Vérifier si le mot-clé existe déjà
+    const existingIndex = company.customResponses.findIndex(
+      cr => cr.keyword.toLowerCase() === keyword.toLowerCase()
+    );
+    
+    if (existingIndex !== -1) {
+      // Mettre à jour la réponse existante
+      company.customResponses[existingIndex].response = response;
+    } else {
+      // Ajouter une nouvelle réponse
+      company.customResponses.push({ keyword, response });
+    }
+    
+    await company.save();
+    
+    logger.info(`Réponse personnalisée ajoutée pour ${company.name}: ${keyword}`);
+    
+    return res.status(200).json({
+      message: 'Réponse personnalisée ajoutée avec succès',
+      customResponses: company.customResponses
+    });
+  } catch (error) {
+    logger.error('Erreur lors de l\'ajout de la réponse personnalisée:', error);
+    return res.status(500).json({
+      message: 'Erreur lors de l\'ajout de la réponse personnalisée',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Supprimer une réponse personnalisée
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
+exports.deleteCustomResponse = async (req, res) => {
+  try {
+    const { companyId, responseId } = req.params;
+    
+    const company = await Company.findById(companyId);
+    
+    if (!company) {
+      return res.status(404).json({
+        message: 'Entreprise non trouvée'
+      });
+    }
+    
+    // Filtrer les réponses pour supprimer celle avec l'ID spécifié
+    company.customResponses = company.customResponses.filter(
+      cr => cr._id.toString() !== responseId
+    );
+    
+    await company.save();
+    
+    logger.info(`Réponse personnalisée supprimée pour ${company.name}`);
+    
+    return res.status(200).json({
+      message: 'Réponse personnalisée supprimée avec succès',
+      customResponses: company.customResponses
+    });
+  } catch (error) {
+    logger.error('Erreur lors de la suppression de la réponse personnalisée:', error);
+    return res.status(500).json({
+      message: 'Erreur lors de la suppression de la réponse personnalisée',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Mettre à jour les paramètres de transfert
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
+exports.updateTransferSettings = async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    const transferSettings = req.body;
+    
+    const company = await Company.findById(companyId);
+    
+    if (!company) {
+      return res.status(404).json({
+        message: 'Entreprise non trouvée'
+      });
+    }
+    
+    // Mettre à jour les paramètres de transfert
+    company.transferSettings = {
+      ...company.transferSettings,
+      ...transferSettings
+    };
+    
+    await company.save();
+    
+    logger.info(`Paramètres de transfert mis à jour pour ${company.name}`);
+    
+    return res.status(200).json({
+      message: 'Paramètres de transfert mis à jour avec succès',
+      transferSettings: company.transferSettings
+    });
+  } catch (error) {
+    logger.error('Erreur lors de la mise à jour des paramètres de transfert:', error);
+    return res.status(500).json({
+      message: 'Erreur lors de la mise à jour des paramètres de transfert',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Mettre à jour les heures d'ouverture
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
+exports.updateBusinessHours = async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    const businessHours = req.body;
+    
+    const company = await Company.findById(companyId);
+    
+    if (!company) {
+      return res.status(404).json({
+        message: 'Entreprise non trouvée'
+      });
+    }
+    
+    // Mettre à jour les heures d'ouverture
+    company.businessHours = {
+      ...company.businessHours,
+      ...businessHours
+    };
+    
+    await company.save();
+    
+    logger.info(`Heures d'ouverture mises à jour pour ${company.name}`);
+    
+    return res.status(200).json({
+      message: 'Heures d\'ouverture mises à jour avec succès',
+      businessHours: company.businessHours
+    });
+  } catch (error) {
+    logger.error('Erreur lors de la mise à jour des heures d\'ouverture:', error);
+    return res.status(500).json({
+      message: 'Erreur lors de la mise à jour des heures d\'ouverture',
+      error: error.message
+    });
+  }
+};
+
+module.exports = exports; 
