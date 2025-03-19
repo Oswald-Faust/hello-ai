@@ -59,4 +59,25 @@ router.post('/:id/conversation', authenticate, callController.addConversationEnt
  */
 router.patch('/:id/status', authenticate, callController.updateCallStatus);
 
+/**
+ * @route   POST /api/calls/incoming
+ * @desc    Gérer un appel entrant
+ * @access  Public
+ */
+router.post('/incoming', callController.handleIncomingCall);
+
+/**
+ * @route   POST /api/calls/voice
+ * @desc    Point d'entrée pour les réponses vocales Fonoster
+ * @access  Public
+ */
+router.post('/voice', callController.handleVoiceRequest);
+
+/**
+ * @route   POST /api/calls/:callId/process-speech
+ * @desc    Traiter la parole de l'utilisateur
+ * @access  Public
+ */
+router.post('/:callId/process-speech', callController.processSpeech);
+
 module.exports = router; 

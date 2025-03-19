@@ -13,7 +13,7 @@ interface AuthContextType {
   user: User | null;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (data: Omit<User, 'id'> & { password: string }) => Promise<void>;
+  register: (firstName: string, lastName: string, email: string, password: string, companyId?: string) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (data: Partial<User>) => Promise<void>;
 }
@@ -52,10 +52,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const register = async (data: Omit<User, 'id'> & { password: string }) => {
+  const register = async (firstName: string, lastName: string, email: string, password: string, companyId?: string) => {
     try {
       setError(null);
-      const response = await api.post('/auth/register', data);
+      const requestData: {
+        firstName: string;
+        lastName: string;
+        email: string;
+        password: string;
+        companyId?: string;
+      } = {
+        firstName,
+        lastName,
+        email,
+        password
+      };
+      
+      // Ajouter companyId seulement s'il est défini et non vide
+      if (companyId) {
+        requestData.companyId = companyId;
+      }
+      
+      const response = await api.post('/auth/register', requestData);
       const { token, user } = response.data;
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));

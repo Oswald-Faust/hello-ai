@@ -1,4 +1,10 @@
 const jwt = require('jsonwebtoken');
+
+
+
+
+
+
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const Company = require('../models/Company');
@@ -49,23 +55,36 @@ const sendTokenResponse = (user, statusCode, res) => {
 exports.register = catchAsync(async (req, res, next) => {
   const { firstName, lastName, email, password, companyId } = req.body;
 
-  // Vérifier si l'entreprise existe
-  const company = await Company.findById(companyId);
-  if (!company) {
+  // Vérifier les paramètres obligatoires
+  if (!firstName || !lastName || !email || !password) {
     return res.status(400).json({
       success: false,
-      message: 'Entreprise non trouvée'
+      message: 'Veuillez fournir tous les champs obligatoires'
     });
   }
 
-  // Créer l'utilisateur
-  const user = await User.create({
+  // Créer l'utilisateur avec ou sans entreprise
+  const userData = {
     firstName,
     lastName,
     email,
-    password,
-    company: companyId
-  });
+    password
+  };
+
+  // Ajouter l'entreprise si elle est spécifiée
+  if (companyId) {
+    // Vérifier si l'entreprise existe
+    const company = await Company.findById(companyId);
+    if (!company) {
+      return res.status(400).json({
+        success: false,
+        message: 'Entreprise non trouvée'
+      });
+    }
+    userData.company = companyId;
+  }
+
+  const user = await User.create(userData);
 
   sendTokenResponse(user, 201, res);
 });

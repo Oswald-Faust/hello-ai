@@ -4,9 +4,11 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const token = request.cookies.get('token');
   const isAuthPage = request.nextUrl.pathname.startsWith('/auth/');
+  const isHomePage = request.nextUrl.pathname === '/';
   
   // Si l'utilisateur n'est pas connecté et essaie d'accéder à une page protégée
-  if (!token && !isAuthPage) {
+  // (exclure la page d'accueil qui est publique)
+  if (!token && !isAuthPage && !isHomePage) {
     const loginUrl = new URL('/auth/login', request.url);
     loginUrl.searchParams.set('from', request.nextUrl.pathname);
     return NextResponse.redirect(loginUrl);

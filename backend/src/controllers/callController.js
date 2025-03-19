@@ -1,6 +1,6 @@
 const Call = require('../models/Call');
 const Company = require('../models/Company');
-const twilioService = require('../services/twilioService');
+const fonosterService = require('../services/fonosterService');
 const openaiService = require('../services/openaiService');
 const logger = require('../utils/logger');
 const { io } = require('../index');
@@ -16,12 +16,12 @@ exports.handleIncomingCall = async (req, res) => {
     const { To, From, CallSid } = req.body;
     
     // Trouver l'entreprise associée au numéro appelé
-    const company = await Company.findOne({ twilioPhoneNumber: To });
+    const company = await Company.findOne({ fonosterPhoneNumber: To });
     
     if (!company) {
       logger.error(`Aucune entreprise trouvée pour le numéro ${To}`);
-      return res.status(404).send(
-        twilioService.generateTwiMLResponse(
+      return res.status(404).json(
+        fonosterService.generateVoiceResponse(
           "Désolé, ce numéro n'est pas configuré correctement. Veuillez réessayer plus tard."
         )
       );
@@ -30,8 +30,8 @@ exports.handleIncomingCall = async (req, res) => {
     // Vérifier si l'entreprise est ouverte
     if (!company.isOpenNow()) {
       logger.info(`Appel reçu en dehors des heures d'ouverture pour ${company.name}`);
-      return res.status(200).send(
-        twilioService.generateTwiMLResponse(
+      return res.status(200).json(
+        fonosterService.generateVoiceResponse(
           `Merci d'avoir appelé ${company.name}. Nous sommes actuellement fermés. Veuillez nous rappeler pendant nos heures d'ouverture.`
         )
       );
@@ -56,17 +56,14 @@ exports.handleIncomingCall = async (req, res) => {
       startTime: call.startTime
     });
     
-    // Générer la réponse TwiML avec le message d'accueil
-    const twimlResponse = twilioService.generateTwiMLResponse(
+    // Générer la réponse vocale avec le message d'accueil
+    const voiceResponse = fonosterService.generateVoiceResponse(
       company.voiceConfig.welcomeMessage,
       {
         voice: company.voiceConfig.voice,
         language: company.voiceConfig.language,
         gather: {
-          input: 'speech',
-          language: company.voiceConfig.language,
           action: `/api/calls/${call._id}/process-speech`,
-          method: 'POST',
           prompt: "Comment puis-je vous aider aujourd'hui?"
         }
       }
@@ -76,11 +73,11 @@ exports.handleIncomingCall = async (req, res) => {
     call.addToTranscript('lydia', company.voiceConfig.welcomeMessage);
     await call.save();
     
-    return res.status(200).send(twimlResponse);
+    return res.status(200).json(voiceResponse);
   } catch (error) {
     logger.error('Erreur lors du traitement de l\'appel entrant:', error);
-    return res.status(500).send(
-      twilioService.generateTwiMLResponse(
+    return res.status(500).json(
+      fonosterService.generateVoiceResponse(
         "Désolé, une erreur s'est produite. Veuillez réessayer plus tard."
       )
     );
@@ -99,14 +96,12 @@ exports.processSpeech = async (req, res) => {
     
     // Si aucun résultat de parole n'est disponible
     if (!SpeechResult) {
-      return res.status(200).send(
-        twilioService.generateTwiMLResponse(
+      return res.status(200).json(
+        fonosterService.generateVoiceResponse(
           "Je n'ai pas pu comprendre ce que vous avez dit. Pourriez-vous répéter s'il vous plaît?",
           {
             gather: {
-              input: 'speech',
               action: `/api/calls/${callId}/process-speech`,
-              method: 'POST',
               prompt: "Pourriez-vous répéter s'il vous plaît?"
             }
           }
@@ -118,8 +113,8 @@ exports.processSpeech = async (req, res) => {
     const call = await Call.findById(callId);
     if (!call) {
       logger.error(`Appel non trouvé: ${callId}`);
-      return res.status(404).send(
-        twilioService.generateTwiMLResponse(
+      return res.status(404).json(
+        fonosterService.generateVoiceResponse(
           "Désolé, une erreur s'est produite. Veuillez réessayer plus tard."
         )
       );
@@ -128,8 +123,8 @@ exports.processSpeech = async (req, res) => {
     const company = await Company.findById(call.company);
     if (!company) {
       logger.error(`Entreprise non trouvée pour l'appel: ${callId}`);
-      return res.status(404).send(
-        twilioService.generateTwiMLResponse(
+      return res.status(404).json(
+        fonosterService.generateVoiceResponse(
           "Désolé, une erreur s'est produite. Veuillez réessayer plus tard."
         )
       );
@@ -161,9 +156,9 @@ exports.processSpeech = async (req, res) => {
         reason: 'demande-client'
       });
       
-      // Générer la réponse TwiML pour le transfert
-      return res.status(200).send(
-        twilioService.generateTwiMLResponse(
+      // Générer la réponse vocale pour le transfert
+      return res.status(200).json(
+        fonosterService.generateVoiceResponse(
           company.voiceConfig.transferMessage,
           {
             voice: company.voiceConfig.voice,
@@ -188,17 +183,15 @@ exports.processSpeech = async (req, res) => {
         transcript: call.transcript
       });
       
-      // Générer la réponse TwiML avec la réponse personnalisée
-      return res.status(200).send(
-        twilioService.generateTwiMLResponse(
+      // Générer la réponse vocale avec la réponse personnalisée
+      return res.status(200).json(
+        fonosterService.generateVoiceResponse(
           customResponse,
           {
             voice: company.voiceConfig.voice,
             language: company.voiceConfig.language,
             gather: {
-              input: 'speech',
               action: `/api/calls/${callId}/process-speech`,
-              method: 'POST',
               prompt: "Y a-t-il autre chose que je puisse faire pour vous?"
             }
           }
@@ -236,17 +229,15 @@ exports.processSpeech = async (req, res) => {
       transcript: call.transcript
     });
     
-    // Générer la réponse TwiML avec la réponse de l'IA
-    return res.status(200).send(
-      twilioService.generateTwiMLResponse(
+    // Générer la réponse vocale avec la réponse de l'IA
+    return res.status(200).json(
+      fonosterService.generateVoiceResponse(
         aiResponse,
         {
           voice: company.voiceConfig.voice,
           language: company.voiceConfig.language,
           gather: {
-            input: 'speech',
             action: `/api/calls/${callId}/process-speech`,
-            method: 'POST',
             prompt: "Y a-t-il autre chose que je puisse faire pour vous?"
           }
         }
@@ -254,8 +245,8 @@ exports.processSpeech = async (req, res) => {
     );
   } catch (error) {
     logger.error('Erreur lors du traitement de la parole:', error);
-    return res.status(500).send(
-      twilioService.generateTwiMLResponse(
+    return res.status(500).json(
+      fonosterService.generateVoiceResponse(
         "Désolé, une erreur s'est produite. Veuillez réessayer plus tard."
       )
     );
@@ -623,6 +614,166 @@ exports.deleteCall = async (req, res, next) => {
   } catch (error) {
     logger.error('Erreur lors de la suppression de l\'appel:', error);
     next(error);
+  }
+};
+
+/**
+ * Ajouter une entrée à la conversation d'un appel
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ * @param {Function} next - Fonction next d'Express
+ */
+exports.addConversationEntry = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { role, message } = req.body;
+    
+    if (!role || !message) {
+      return errorResponse(res, 400, 'Le rôle et le message sont requis');
+    }
+    
+    const call = await Call.findById(id);
+    
+    if (!call) {
+      return errorResponse(res, 404, 'Appel non trouvé');
+    }
+    
+    // Ajouter l'entrée à la conversation
+    call.addToTranscript(role, message);
+    await call.save();
+    
+    // Notifier via Socket.io si disponible
+    if (io) {
+      io.to(`call-${id}`).emit('conversation-update', {
+        callId: id,
+        transcript: call.transcript
+      });
+    }
+    
+    return successResponse(res, 200, 'Entrée ajoutée avec succès', { call });
+  } catch (error) {
+    logger.error('Erreur lors de l\'ajout d\'une entrée à la conversation:', error);
+    next(error);
+  }
+};
+
+/**
+ * Mettre à jour le statut d'un appel
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ * @param {Function} next - Fonction next d'Express
+ */
+exports.updateCallStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    if (!status) {
+      return errorResponse(res, 400, 'Le statut est requis');
+    }
+    
+    const validStatuses = ['en-attente', 'en-cours', 'terminé', 'manqué', 'transféré'];
+    if (!validStatuses.includes(status)) {
+      return errorResponse(res, 400, 'Statut invalide');
+    }
+    
+    const call = await Call.findById(id);
+    
+    if (!call) {
+      return errorResponse(res, 404, 'Appel non trouvé');
+    }
+    
+    call.status = status;
+    
+    // Si l'appel est terminé, définir endTime
+    if (status === 'terminé') {
+      call.endTime = Date.now();
+      // Calculer la durée
+      if (call.startTime) {
+        call.duration = Math.round((call.endTime - call.startTime) / 1000); // en secondes
+      }
+    }
+    
+    await call.save();
+    
+    // Notifier via Socket.io si disponible
+    if (io) {
+      io.to(`company-${call.company}`).emit('call-status-update', {
+        callId: id,
+        status
+      });
+    }
+    
+    return successResponse(res, 200, 'Statut mis à jour avec succès', { call });
+  } catch (error) {
+    logger.error('Erreur lors de la mise à jour du statut de l\'appel:', error);
+    next(error);
+  }
+};
+
+/**
+ * Gérer les requêtes vocales spécifiques à Fonoster
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
+exports.handleVoiceRequest = async (req, res) => {
+  try {
+    const { callId, event } = req.body;
+    
+    // Logique différente selon l'événement
+    switch (event) {
+      case 'call.new':
+        // Un nouvel appel est arrivé
+        logger.info(`Nouvel appel Fonoster reçu: ${callId}`);
+        
+        // Générer une réponse vocale générique de bienvenue
+        return res.status(200).json(
+          fonosterService.generateVoiceResponse(
+            "Bienvenue chez Lydia. Comment puis-je vous aider aujourd'hui?",
+            {
+              gather: {
+                action: `/api/calls/process-speech?callId=${callId}`,
+                prompt: "Je suis à votre écoute."
+              }
+            }
+          )
+        );
+      
+      case 'call.bridged':
+        // L'appel a été transféré
+        logger.info(`Appel Fonoster transféré: ${callId}`);
+        return res.status(200).json({ status: 'ok' });
+      
+      case 'call.ended':
+        // L'appel est terminé
+        logger.info(`Appel Fonoster terminé: ${callId}`);
+        
+        // Mettre à jour le statut de l'appel dans la base de données
+        if (req.body.callRef) {
+          const call = await Call.findOne({ callSid: req.body.callRef });
+          if (call) {
+            call.status = 'terminé';
+            call.endTime = new Date();
+            if (call.startTime) {
+              call.duration = Math.round((call.endTime - call.startTime) / 1000);
+            }
+            await call.save();
+          }
+        }
+        
+        return res.status(200).json({ status: 'ok' });
+      
+      default:
+        // Événement non géré
+        logger.warn(`Événement Fonoster non géré: ${event}`);
+        return res.status(200).json({ status: 'ignored' });
+    }
+  } catch (error) {
+    logger.error('Erreur lors du traitement de la requête vocale:', error);
+    return res.status(500).json({
+      error: 'Erreur lors du traitement de la requête vocale',
+      details: error.message
+    });
   }
 };
 

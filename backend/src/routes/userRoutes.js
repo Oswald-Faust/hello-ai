@@ -4,7 +4,7 @@ const userController = require('../controllers/userController');
 const authMiddleware = require('../middleware/authMiddleware');
 
 // Toutes les routes d'utilisateur nécessitent une authentification
-router.use(authMiddleware.verifyToken);
+router.use(authMiddleware.authenticate);
 
 // Routes accessibles aux administrateurs globaux
 router.get('/', authMiddleware.isAdmin, userController.getAllUsers);

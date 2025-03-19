@@ -26,6 +26,22 @@ const CompanySchema = new Schema({
     type: String,
     trim: true
   },
+  fonosterPhoneNumber: {
+    type: String,
+    trim: true
+  },
+  fonosterAppId: {
+    type: String,
+    trim: true
+  },
+  twilioPhoneNumber: {
+    type: String,
+    trim: true
+  },
+  twilioPhoneNumberSid: {
+    type: String,
+    trim: true
+  },
   email: {
     type: String,
     trim: true,

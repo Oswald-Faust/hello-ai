@@ -1,5 +1,6 @@
 const Company = require('../models/Company');
-const twilioService = require('../services/twilioService');
+const User = require('../models/User');
+const fonosterService = require('../services/fonosterService');
 const logger = require('../utils/logger');
 const { errorResponse, successResponse } = require('../utils/responseHandler');
 
@@ -211,7 +212,7 @@ exports.updateSubscription = async (req, res, next) => {
 exports.purchasePhoneNumber = async (req, res) => {
   try {
     const { companyId } = req.params;
-    const { areaCode, country } = req.body;
+    const { phoneNumber, appName } = req.body;
     
     const company = await Company.findById(companyId);
     
@@ -222,7 +223,7 @@ exports.purchasePhoneNumber = async (req, res) => {
     }
     
     // Si l'entreprise a déjà un numéro, vérifier si on veut le remplacer
-    if (company.twilioPhoneNumber) {
+    if (company.fonosterPhoneNumber) {
       if (!req.body.replace) {
         return res.status(400).json({
           message: 'L\'entreprise possède déjà un numéro de téléphone. Définissez replace=true pour le remplacer.'
@@ -230,32 +231,37 @@ exports.purchasePhoneNumber = async (req, res) => {
       }
     }
     
-    // Acheter un nouveau numéro via Twilio
-    const purchasedNumber = await twilioService.purchasePhoneNumber({
-      areaCode,
-      country,
+    // Créer une application vocale avec Fonoster
+    const voiceApp = await fonosterService.createVoiceApp({
+      name: appName || `Lydia - ${company.name}`,
+      webhookUrl: `${process.env.API_BASE_URL || 'http://localhost:3001'}/api/calls/incoming`,
+      voiceUrl: `${process.env.API_BASE_URL || 'http://localhost:3001'}/api/calls/voice`
+    });
+    
+    // Obtenir un numéro pour l'application
+    const phoneNumberInfo = await fonosterService.getPhoneNumber({
+      phoneNumber: phoneNumber, // Fonoster utilise souvent un numéro SIP défini par l'utilisateur
+      appId: voiceApp.getRef(),
       friendlyName: `Lydia - ${company.name}`
     });
     
-    // Configurer le webhook pour le numéro
-    const webhookUrl = `${process.env.API_BASE_URL || 'http://localhost:3001'}/api/calls/incoming`;
-    await twilioService.configureWebhook(purchasedNumber.sid, webhookUrl);
-    
     // Mettre à jour l'entreprise avec le nouveau numéro
-    company.twilioPhoneNumber = purchasedNumber.phoneNumber;
-    company.twilioPhoneNumberSid = purchasedNumber.sid;
+    company.fonosterPhoneNumber = phoneNumberInfo.phoneNumber;
+    company.fonosterAppId = voiceApp.getRef();
     await company.save();
     
-    logger.info(`Numéro de téléphone acheté pour ${company.name}: ${purchasedNumber.phoneNumber}`);
+    logger.info(`Application vocale créée pour ${company.name}: ${voiceApp.getName()}`);
+    logger.info(`Numéro de téléphone configuré pour ${company.name}: ${phoneNumberInfo.phoneNumber}`);
     
     return res.status(200).json({
-      message: 'Numéro de téléphone acheté avec succès',
-      phoneNumber: purchasedNumber.phoneNumber
+      message: 'Numéro de téléphone configuré avec succès',
+      phoneNumber: phoneNumberInfo.phoneNumber,
+      appId: voiceApp.getRef()
     });
   } catch (error) {
-    logger.error('Erreur lors de l\'achat du numéro de téléphone:', error);
+    logger.error('Erreur lors de la configuration du numéro de téléphone:', error);
     return res.status(500).json({
-      message: 'Erreur lors de l\'achat du numéro de téléphone',
+      message: 'Erreur lors de la configuration du numéro de téléphone',
       error: error.message
     });
   }

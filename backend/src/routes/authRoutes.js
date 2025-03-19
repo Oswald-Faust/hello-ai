@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
-const { protect } = require('../middleware/auth');
+const { authenticate } = require('../middleware/authMiddleware');
 
 /**
  * @route POST /api/auth/register
@@ -36,34 +36,29 @@ router.put('/reset-password/:token', authController.resetPassword);
  * @desc Obtenir les informations de l'utilisateur connecté
  * @access Private
  */
-router.get('/me', protect, authController.getMe);
+router.get('/me', authenticate, authController.getMe);
 
 /**
  * @route POST /api/auth/logout
  * @desc Déconnecter un utilisateur
  * @access Private
  */
-router.post('/logout', protect, authController.logout);
+router.post('/logout', authenticate, authController.logout);
 
 /**
  * @route PUT /api/auth/profile
  * @desc Mettre à jour le profil de l'utilisateur
  * @access Private
  */
-router.put('/profile', protect, authController.updateProfile);
+router.put('/profile', authenticate, authController.updateProfile);
 
 /**
  * @route PUT /api/auth/password
  * @desc Mettre à jour le mot de passe de l'utilisateur
  * @access Private
  */
-router.put('/password', protect, authController.updatePassword);
+router.put('/password', authenticate, authController.updatePassword);
 
-/**
- * @route POST /api/auth/refresh-token
- * @desc Rafraîchir le token d'authentification
- * @access Public
- */
-router.post('/refresh-token', authController.refreshToken);
+// La route refresh-token sera implémentée plus tard
 
 module.exports = router; 
