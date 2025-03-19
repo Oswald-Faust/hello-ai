@@ -53,7 +53,7 @@ const sendTokenResponse = (user, statusCode, res) => {
 // @route   POST /api/auth/register
 // @access  Public
 exports.register = catchAsync(async (req, res, next) => {
-  const { firstName, lastName, email, password, companyId } = req.body;
+  const { firstName, lastName, email, password, companyId, companyName } = req.body;
 
   // Vérifier les paramètres obligatoires
   if (!firstName || !lastName || !email || !password) {
@@ -63,7 +63,7 @@ exports.register = catchAsync(async (req, res, next) => {
     });
   }
 
-  // Créer l'utilisateur avec ou sans entreprise
+  // Préparer les données utilisateur
   const userData = {
     firstName,
     lastName,
@@ -71,7 +71,7 @@ exports.register = catchAsync(async (req, res, next) => {
     password
   };
 
-  // Ajouter l'entreprise si elle est spécifiée
+  // Si companyId est fourni, vérifier et associer l'entreprise existante
   if (companyId) {
     // Vérifier si l'entreprise existe
     const company = await Company.findById(companyId);
@@ -82,7 +82,25 @@ exports.register = catchAsync(async (req, res, next) => {
       });
     }
     userData.company = companyId;
+  } 
+  // Si companyName est fourni, créer une nouvelle entreprise
+  else if (companyName) {
+    try {
+      const newCompany = await Company.create({
+        name: companyName,
+        isActive: true
+      });
+      userData.company = newCompany._id;
+      logger.info(`Nouvelle entreprise créée: ${newCompany.name}`);
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        message: 'Erreur lors de la création de l\'entreprise',
+        error: error.message
+      });
+    }
   }
+  // Si aucune entreprise n'est fournie, l'utilisateur peut être créé sans entreprise
 
   const user = await User.create(userData);
 

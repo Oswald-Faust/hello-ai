@@ -39,7 +39,7 @@ const UserSchema = new Schema({
   company: {
     type: Schema.Types.ObjectId,
     ref: 'Company',
-    required: [true, 'L\'entreprise est requise']
+    required: false
   },
   phoneNumber: {
     type: String,

@@ -32,7 +32,8 @@ interface RegisterData {
   lastName: string;
   email: string;
   password: string;
-  companyId: string;
+  companyId?: string;
+  companyName?: string;
   role?: string;
 }
 
@@ -157,9 +158,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       toast.success('Inscription réussie');
       router.push('/dashboard');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur d\'inscription:', error);
-      toast.error('Erreur lors de l\'inscription');
+      const errorMessage = error.response?.data?.message || 'Erreur lors de l\'inscription';
+      toast.error(errorMessage);
       throw error;
     } finally {
       setIsLoading(false);

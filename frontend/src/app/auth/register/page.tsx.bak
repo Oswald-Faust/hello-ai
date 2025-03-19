@@ -15,4 +15,4 @@ export default function RegisterPage() {
       <p className="text-gray-600">Redirection vers le nouveau formulaire d'inscription...</p>
     </div>
   );
-} 
+}
