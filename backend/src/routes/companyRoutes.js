@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const companyController = require('../controllers/companyController');
-const { authenticate, authorize } = require('../middleware/authMiddleware');
+const { authenticate, authorize, isAdmin } = require('../middleware/authMiddleware');
 
 /**
  * @route   POST /api/companies
@@ -18,6 +18,20 @@ router.post('/', authenticate, authorize(['admin']), companyController.createCom
 router.get('/', authenticate, authorize(['admin']), companyController.getAllCompanies);
 
 /**
+ * @route   GET /api/companies/stats
+ * @desc    Récupérer les statistiques des entreprises
+ * @access  Private/Admin
+ */
+router.get('/stats', authenticate, authorize(['admin']), companyController.getCompaniesStats);
+
+/**
+ * @route   GET /api/companies/count
+ * @desc    Récupérer le nombre total d'entreprises
+ * @access  Private/Admin
+ */
+router.get('/count', authenticate, authorize(['admin']), companyController.getCompaniesCount);
+
+/**
  * @route   GET /api/companies/:id
  * @desc    Récupérer une entreprise par son ID
  * @access  Private
@@ -30,6 +44,13 @@ router.get('/:id', authenticate, companyController.getCompanyById);
  * @access  Private/Admin
  */
 router.put('/:id', authenticate, authorize(['admin']), companyController.updateCompany);
+
+/**
+ * @route   PATCH /api/companies/:id/settings
+ * @desc    Mettre à jour les paramètres d'une entreprise
+ * @access  Private/Admin
+ */
+router.patch('/:companyId/settings', authenticate, authorize(['admin']), companyController.updateCompanySettings);
 
 /**
  * @route   DELETE /api/companies/:id

@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const Schema = mongoose.Schema;
+const logger = require('../utils/logger');
 
 /**
  * Schéma pour les utilisateurs de la plateforme Lydia
@@ -105,22 +106,68 @@ UserSchema.virtual('fullName').get(function() {
 
 // Middleware pour hasher le mot de passe avant de sauvegarder
 UserSchema.pre('save', async function(next) {
+  logger.info(`[USER MODEL] Pre-save hook déclenché pour l'utilisateur: ${this.email}`);
+  
   if (!this.isModified('password')) {
+    logger.info(`[USER MODEL] Mot de passe non modifié, skip du hashage`);
     return next();
   }
   
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
+  try {
+    logger.info(`[USER MODEL] Hashage du mot de passe pour: ${this.email}`);
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    logger.info(`[USER MODEL] Mot de passe hashé avec succès`);
+    next();
+  } catch (error) {
+    logger.error(`[USER MODEL] Erreur lors du hashage du mot de passe: ${error.message}`);
+    next(error);
+  }
+});
+
+// Middleware pour valider les données avant la sauvegarde
+UserSchema.pre('validate', function(next) {
+  logger.info(`[USER MODEL] Validation des données utilisateur: ${this.email}`);
+  
+  // Log des champs obligatoires manquants
+  if (!this.firstName) logger.warn(`[USER MODEL] firstName manquant pour: ${this.email}`);
+  if (!this.lastName) logger.warn(`[USER MODEL] lastName manquant pour: ${this.email}`);
+  if (!this.email) logger.warn(`[USER MODEL] email manquant`);
+  if (!this.password) logger.warn(`[USER MODEL] password manquant pour: ${this.email}`);
+  
   next();
 });
 
 // Générer un token JWT
 UserSchema.methods.generateAuthToken = function() {
-  return jwt.sign(
-    { id: this._id, role: this.role },
-    process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRATION }
-  );
+  try {
+    logger.info(`[USER MODEL] Génération d'un token JWT pour l'utilisateur: ${this.email}`);
+    
+    if (!process.env.JWT_SECRET) {
+      logger.error(`[USER MODEL] JWT_SECRET n'est pas défini dans les variables d'environnement`);
+      throw new Error('La configuration JWT est incomplète');
+    }
+    
+    if (!process.env.JWT_EXPIRATION) {
+      logger.warn(`[USER MODEL] JWT_EXPIRATION n'est pas défini, utilisation de la valeur par défaut 24h`);
+    }
+    
+    const token = jwt.sign(
+      { 
+        id: this._id, 
+        role: this.role,
+        email: this.email
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRATION || '24h' }
+    );
+    
+    logger.info(`[USER MODEL] Token JWT généré avec succès pour: ${this.email}`);
+    return token;
+  } catch (error) {
+    logger.error(`[USER MODEL] Erreur lors de la génération du token JWT: ${error.message}`);
+    throw error;
+  }
 };
 
 // Générer un token de réinitialisation de mot de passe

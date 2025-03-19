@@ -483,4 +483,149 @@ exports.updateBusinessHours = async (req, res) => {
   }
 };
 
+/**
+ * Obtenir des statistiques sur les entreprises
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ * @param {Function} next - Fonction next d'Express
+ */
+exports.getCompaniesStats = async (req, res, next) => {
+  try {
+    logger.info('[COMPANY CONTROLLER] Récupération des statistiques d\'entreprises');
+    
+    // Nombre total d'entreprises
+    const totalCompanies = await Company.countDocuments();
+    
+    // Nombre d'entreprises actives
+    const activeCompanies = await Company.countDocuments({ isActive: true });
+    
+    // Entreprises créées par mois (6 derniers mois)
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    
+    const companiesByMonth = await Company.aggregate([
+      { 
+        $match: { 
+          createdAt: { $gte: sixMonthsAgo } 
+        } 
+      },
+      {
+        $group: {
+          _id: { 
+            year: { $year: "$createdAt" }, 
+            month: { $month: "$createdAt" } 
+          },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } }
+    ]);
+    
+    // Transformer le résultat en format plus lisible
+    const companiesGrowth = companiesByMonth.map(item => ({
+      period: `${item._id.year}-${item._id.month < 10 ? '0' + item._id.month : item._id.month}`,
+      count: item.count
+    }));
+    
+    // Récupérer les entreprises avec le plus grand nombre d'utilisateurs
+    const User = require('../models/User');
+    const usersByCompany = await User.aggregate([
+      {
+        $group: {
+          _id: "$company",
+          userCount: { $sum: 1 }
+        }
+      },
+      { $sort: { userCount: -1 } },
+      { $limit: 5 }
+    ]);
+    
+    // Récupérer les détails des entreprises
+    const companyIds = usersByCompany.map(item => item._id);
+    const topCompanies = await Company.find({ _id: { $in: companyIds } }, 'name');
+    
+    const topCompaniesByUsers = usersByCompany.map(item => {
+      const company = topCompanies.find(c => c._id.toString() === item._id.toString());
+      return {
+        _id: item._id,
+        name: company ? company.name : 'Entreprise inconnue',
+        userCount: item.userCount
+      };
+    });
+    
+    logger.info('[COMPANY CONTROLLER] Statistiques d\'entreprises récupérées avec succès');
+    
+    return successResponse(res, 200, 'Statistiques des entreprises récupérées avec succès', {
+      totalCompanies,
+      activeCompanies,
+      companiesGrowth,
+      topCompaniesByUsers
+    });
+  } catch (error) {
+    logger.error('[COMPANY CONTROLLER] Erreur lors de la récupération des statistiques:', error);
+    next(error);
+  }
+};
+
+/**
+ * Obtenir le nombre total d'entreprises et d'entreprises actives
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ * @param {Function} next - Fonction next d'Express
+ */
+exports.getCompaniesCount = async (req, res, next) => {
+  try {
+    logger.info('[COMPANY CONTROLLER] Récupération du nombre d\'entreprises');
+    
+    const totalCount = await Company.countDocuments();
+    const activeCount = await Company.countDocuments({ isActive: true });
+    
+    logger.info('[COMPANY CONTROLLER] Nombre d\'entreprises récupéré avec succès');
+    
+    return successResponse(res, 200, 'Nombre d\'entreprises récupéré avec succès', {
+      total: totalCount,
+      active: activeCount
+    });
+  } catch (error) {
+    logger.error('[COMPANY CONTROLLER] Erreur lors de la récupération du nombre d\'entreprises:', error);
+    next(error);
+  }
+};
+
+/**
+ * Mettre à jour les paramètres d'une entreprise
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ * @param {Function} next - Fonction next d'Express
+ */
+exports.updateCompanySettings = async (req, res, next) => {
+  try {
+    const { companyId } = req.params;
+    const { settings } = req.body;
+    
+    logger.info(`[COMPANY CONTROLLER] Mise à jour des paramètres de l'entreprise ${companyId}`);
+    
+    if (!settings || typeof settings !== 'object') {
+      return errorResponse(res, 400, 'Les paramètres de l\'entreprise sont requis et doivent être un objet');
+    }
+    
+    const company = await Company.findByIdAndUpdate(
+      companyId,
+      { $set: { settings } },
+      { new: true, runValidators: true }
+    );
+    
+    if (!company) {
+      return errorResponse(res, 404, 'Entreprise non trouvée');
+    }
+    
+    logger.info(`[COMPANY CONTROLLER] Paramètres de l'entreprise ${companyId} mis à jour avec succès`);
+    
+    return successResponse(res, 200, 'Paramètres de l\'entreprise mis à jour avec succès', { company });
+  } catch (error) {
+    logger.error('[COMPANY CONTROLLER] Erreur lors de la mise à jour des paramètres de l\'entreprise:', error);
+    next(error);
+  }
+};
+
 module.exports = exports; 

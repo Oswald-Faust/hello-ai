@@ -20,7 +20,13 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (user) {
-      router.push('/dashboard');
+      if (user.role === 'admin' || user.role === 'superadmin') {
+        console.log('[LOGIN PAGE] Redirection vers le dashboard admin');
+        router.push('/dashboard/admin');
+      } else {
+        console.log('[LOGIN PAGE] Redirection vers le dashboard utilisateur');
+        router.push('/dashboard');
+      }
     }
   }, [user, router]);
 
@@ -37,12 +43,42 @@ export default function LoginPage() {
     setLoginError('');
     
     try {
-      await login(email, password);
-      // Redirection est gérée par le premier useEffect
-    } catch (err) {
-      // L'erreur est gérée par le deuxième useEffect
+      console.log('[LOGIN PAGE] Tentative de connexion avec:', email);
+      const userRole = await login(email, password);
+      console.log('[LOGIN PAGE] Connexion réussie, rôle:', userRole);
+      
+      // Redirection basée sur le rôle
+      if (userRole === 'admin' || userRole === 'superadmin') {
+        console.log('[LOGIN PAGE] Redirection vers le dashboard admin après connexion');
+        router.push('/dashboard/admin');
+      } else {
+        console.log('[LOGIN PAGE] Redirection vers le dashboard utilisateur après connexion');
+        router.push('/dashboard');
+      }
+    } catch (err: any) {
+      console.error('[LOGIN PAGE] Erreur pendant la connexion:', err);
+      setLoginError(err?.message || 'Erreur de connexion. Veuillez réessayer.');
+      setIsLoading(false);
     }
   };
+
+  // Fonction pour simuler une déconnexion en cas de blocage
+  const handleLoginReset = () => {
+    if (isLoading) {
+      console.log('[LOGIN PAGE] Réinitialisation de l\'état de connexion');
+      setIsLoading(false);
+      setLoginError('La connexion a pris trop de temps. Veuillez réessayer.');
+    }
+  };
+
+  // Reset automatique après 10 secondes d'attente
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isLoading) {
+      timer = setTimeout(handleLoginReset, 10000);
+    }
+    return () => clearTimeout(timer);
+  }, [isLoading]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-50 to-indigo-50 p-4">
@@ -70,6 +106,7 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="w-full h-11 px-4 transition-colors border border-gray-300 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20"
+                disabled={isLoading}
               />
             </div>
             
@@ -88,6 +125,7 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 className="w-full h-11 px-4 transition-colors border border-gray-300 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20"
+                disabled={isLoading}
               />
             </div>
             
@@ -96,6 +134,7 @@ export default function LoginPage() {
                 type="checkbox" 
                 id="remember" 
                 className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary"
+                disabled={isLoading}
               />
               <label htmlFor="remember" className="text-sm text-gray-600">
                 Se souvenir de moi
@@ -109,6 +148,19 @@ export default function LoginPage() {
             >
               {isLoading ? 'Connexion en cours...' : 'Se connecter'}
             </Button>
+            
+            {isLoading && (
+              <p className="text-xs text-center text-gray-500 mt-2">
+                Si la connexion prend trop de temps, veuillez 
+                <button 
+                  type="button" 
+                  onClick={handleLoginReset}
+                  className="text-primary ml-1 hover:underline"
+                >
+                  réessayer
+                </button>
+              </p>
+            )}
           </form>
           
           <div className="mt-8">
@@ -125,6 +177,7 @@ export default function LoginPage() {
               <Button
                 variant="outline"
                 className="h-11 bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 flex items-center justify-center"
+                disabled={isLoading}
               >
                 <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
                   <g transform="matrix(1, 0, 0, 1, 27.009001, -39.238998)">

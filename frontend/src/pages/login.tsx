@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NextPage } from 'next';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -13,9 +13,27 @@ const Login: NextPage = () => {
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [initializing, setInitializing] = useState(true);
   
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, user, loading } = useAuth();
+
+  // Rediriger si l'utilisateur est déjà connecté
+  useEffect(() => {
+    if (user && !loading && initializing) {
+      console.log('[LOGIN] Utilisateur déjà connecté, vérification du rôle');
+      
+      if (user.role === 'admin' || user.role === 'superadmin') {
+        console.log('[LOGIN] Utilisateur admin, redirection vers le dashboard admin');
+        router.push('/dashboard/admin');
+      } else {
+        console.log('[LOGIN] Utilisateur standard, redirection vers le dashboard');
+        router.push('/dashboard');
+      }
+    } else if (!loading) {
+      setInitializing(false);
+    }
+  }, [user, loading, router, initializing]);
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
@@ -42,11 +60,23 @@ const Login: NextPage = () => {
     }
     
     setIsSubmitting(true);
+    setErrors({});
     
     try {
-      await login(email, password);
-      router.push('/dashboard');
+      console.log('[LOGIN] Tentative de connexion avec:', email);
+      const userRole = await login(email, password);
+      console.log('[LOGIN] Connexion réussie, rôle détecté:', userRole);
+      
+      // Redirection en fonction du rôle
+      if (userRole === 'admin' || userRole === 'superadmin') {
+        console.log('[LOGIN] Redirection vers le dashboard admin');
+        router.push('/dashboard/admin');
+      } else {
+        console.log('[LOGIN] Redirection vers le dashboard standard');
+        router.push('/dashboard');
+      }
     } catch (err: any) {
+      console.error('[LOGIN] Erreur de connexion:', err);
       setErrors({
         ...errors,
         general: err.response?.data?.message || 'Une erreur est survenue lors de la connexion'
@@ -55,6 +85,15 @@ const Login: NextPage = () => {
       setIsSubmitting(false);
     }
   };
+
+  // Afficher un loader pendant l'initialisation
+  if (loading && initializing) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="w-12 h-12 border-4 border-t-primary-600 border-gray-200 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-50">

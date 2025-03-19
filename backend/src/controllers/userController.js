@@ -270,4 +270,217 @@ exports.getUsersByCompany = async (req, res) => {
   }
 };
 
+/**
+ * Créer un nouvel utilisateur (admin)
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
+exports.createUser = async (req, res) => {
+  try {
+    logger.info('[USER CONTROLLER] Début création d\'utilisateur par admin');
+    const { firstName, lastName, email, password, role, companyId, phoneNumber, isActive } = req.body;
+
+    // Vérifier les champs obligatoires
+    if (!firstName || !lastName || !email || !password || !companyId) {
+      return res.status(400).json({
+        message: 'Veuillez fournir tous les champs obligatoires: prénom, nom, email, mot de passe et entreprise'
+      });
+    }
+
+    // Vérifier si l'email existe déjà
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({
+        message: 'Un utilisateur avec cet email existe déjà'
+      });
+    }
+
+    // Créer le nouvel utilisateur
+    const userData = {
+      firstName,
+      lastName,
+      email,
+      password,
+      company: companyId,
+      role: role || 'user',
+      phoneNumber,
+      isActive: isActive !== undefined ? isActive : true
+    };
+
+    logger.info(`[USER CONTROLLER] Création de l'utilisateur avec les données: ${JSON.stringify({...userData, password: '********'})}`);
+
+    const user = await User.create(userData);
+    logger.info(`[USER CONTROLLER] Utilisateur créé avec succès: ID ${user._id}`);
+
+    return res.status(201).json({
+      message: 'Utilisateur créé avec succès',
+      user: {
+        _id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+        company: user.company,
+        phoneNumber: user.phoneNumber,
+        isActive: user.isActive,
+        createdAt: user.createdAt
+      }
+    });
+  } catch (error) {
+    logger.error(`[USER CONTROLLER] Erreur lors de la création de l'utilisateur: ${error.message}`);
+    return res.status(500).json({
+      message: 'Erreur lors de la création de l\'utilisateur',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Obtenir les statistiques des utilisateurs (pour dashboard admin)
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
+exports.getUsersStats = async (req, res) => {
+  try {
+    logger.info('[USER CONTROLLER] Récupération des statistiques utilisateurs');
+    
+    const totalUsers = await User.countDocuments();
+    const activeUsers = await User.countDocuments({ isActive: true });
+    const adminUsers = await User.countDocuments({ role: 'admin' });
+    
+    // Obtenir les utilisateurs créés par mois sur les 6 derniers mois
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    
+    const usersByMonth = await User.aggregate([
+      { 
+        $match: { 
+          createdAt: { $gte: sixMonthsAgo } 
+        } 
+      },
+      {
+        $group: {
+          _id: { 
+            year: { $year: "$createdAt" }, 
+            month: { $month: "$createdAt" } 
+          },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } }
+    ]);
+    
+    // Transformer le résultat en format plus lisible
+    const usersGrowth = usersByMonth.map(item => ({
+      period: `${item._id.year}-${item._id.month < 10 ? '0' + item._id.month : item._id.month}`,
+      count: item.count
+    }));
+    
+    logger.info('[USER CONTROLLER] Statistiques utilisateurs récupérées avec succès');
+    
+    return res.status(200).json({
+      totalUsers,
+      activeUsers,
+      adminUsers,
+      usersGrowth
+    });
+  } catch (error) {
+    logger.error(`[USER CONTROLLER] Erreur lors de la récupération des statistiques utilisateurs: ${error.message}`);
+    return res.status(500).json({
+      message: 'Erreur lors de la récupération des statistiques utilisateurs',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Changer le statut actif/inactif d'un utilisateur
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
+exports.toggleUserStatus = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { isActive } = req.body;
+    
+    if (isActive === undefined) {
+      return res.status(400).json({
+        message: 'Le paramètre isActive est requis'
+      });
+    }
+    
+    logger.info(`[USER CONTROLLER] Changement du statut de l'utilisateur ${userId} à ${isActive ? 'actif' : 'inactif'}`);
+    
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { isActive },
+      { new: true, runValidators: true }
+    ).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({
+        message: 'Utilisateur non trouvé'
+      });
+    }
+    
+    logger.info(`[USER CONTROLLER] Statut de l'utilisateur ${userId} mis à jour avec succès`);
+    
+    return res.status(200).json({
+      message: `L'utilisateur a été ${isActive ? 'activé' : 'désactivé'} avec succès`,
+      user
+    });
+  } catch (error) {
+    logger.error(`[USER CONTROLLER] Erreur lors du changement du statut de l'utilisateur: ${error.message}`);
+    return res.status(500).json({
+      message: 'Erreur lors du changement du statut de l\'utilisateur',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Mettre à jour le rôle d'un utilisateur
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
+exports.updateUserRole = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { role } = req.body;
+    
+    if (!role || !['user', 'admin'].includes(role)) {
+      return res.status(400).json({
+        message: 'Un rôle valide est requis (user ou admin)'
+      });
+    }
+    
+    logger.info(`[USER CONTROLLER] Mise à jour du rôle de l'utilisateur ${userId} à ${role}`);
+    
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { role },
+      { new: true, runValidators: true }
+    ).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({
+        message: 'Utilisateur non trouvé'
+      });
+    }
+    
+    logger.info(`[USER CONTROLLER] Rôle de l'utilisateur ${userId} mis à jour avec succès`);
+    
+    return res.status(200).json({
+      message: `Le rôle de l'utilisateur a été mis à jour avec succès à ${role}`,
+      user
+    });
+  } catch (error) {
+    logger.error(`[USER CONTROLLER] Erreur lors de la mise à jour du rôle de l'utilisateur: ${error.message}`);
+    return res.status(500).json({
+      message: 'Erreur lors de la mise à jour du rôle de l\'utilisateur',
+      error: error.message
+    });
+  }
+};
+
 module.exports = exports; 

@@ -59,6 +59,13 @@ router.put('/profile', authenticate, authController.updateProfile);
  */
 router.put('/password', authenticate, authController.updatePassword);
 
+/**
+ * @route POST /api/auth/refresh-token
+ * @desc Rafraîchir le token JWT
+ * @access Public
+ */
+router.post('/refresh-token', authController.refreshToken);
+
 // La route refresh-token sera implémentée plus tard
 
 module.exports = router; 

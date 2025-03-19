@@ -69,28 +69,41 @@ const Register: NextPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('[REGISTER] Début du processus d\'inscription');
+    console.log('[REGISTER] Données du formulaire:', formData);
+    
     if (!validateForm()) {
+      console.log('[REGISTER] Validation du formulaire échouée');
       return;
     }
     
+    console.log('[REGISTER] Validation du formulaire réussie');
     setIsSubmitting(true);
     
     try {
-      await register({
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
+      const registerData = {
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        email: formData.email.trim(),
         password: formData.password,
-        companyName: formData.companyName
-      });
+        companyName: formData.companyName.trim()
+      };
+      
+      console.log('[REGISTER] Données préparées pour l\'envoi:', registerData);
+      
+      await register(registerData);
+      console.log('[REGISTER] Inscription réussie, redirection vers dashboard');
       router.push('/dashboard');
     } catch (err: any) {
+      console.error('[REGISTER] Erreur d\'inscription:', err);
+      console.error('[REGISTER] Détail de l\'erreur:', err.response?.data);
       setErrors({
         ...errors,
         general: err.response?.data?.message || 'Une erreur est survenue lors de l\'inscription'
       });
     } finally {
       setIsSubmitting(false);
+      console.log('[REGISTER] Fin du processus d\'inscription');
     }
   };
 

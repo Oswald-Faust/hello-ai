@@ -42,5 +42,6 @@ if (process.env.MONGODB_URI) {
 module.exports = {
   pgPool,
   query: (text, params) => pgPool.query(text, params),
-  mongoose
+  mongoose,
+  connectDB: connectMongoDB
 }; 
