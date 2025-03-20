@@ -111,7 +111,6 @@ const CallSchema = new Schema({
 });
 
 // Créer des index pour améliorer les performances des recherches
-CallSchema.index({ callSid: 1 });
 CallSchema.index({ company: 1 });
 CallSchema.index({ from: 1 });
 CallSchema.index({ status: 1 });
