@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { Card } from '@/components/ui/Card';
@@ -12,24 +12,41 @@ import { Alert, AlertDescription } from '@/components/ui/Alert';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  
   const { login, user, error } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
-
+  
+  // Effet pour rediriger l'utilisateur s'il est déjà connecté
   useEffect(() => {
     if (user) {
-      if (user.role === 'admin' || user.role === 'superadmin') {
+      console.log('[LOGIN PAGE] Utilisateur connecté, préparation de la redirection');
+      
+      // Récupérer le paramètre "from" (sans le _auth_no_redirect)
+      const from = searchParams?.get('from');
+      
+      // Déterminer la destination
+      let destination = '/dashboard';
+      
+      if (from && !from.includes('/auth/') && from !== '/') {
+        destination = from;
+        console.log('[LOGIN PAGE] Redirection vers:', destination);
+      } else if (user.role === 'admin' || user.role === 'superadmin') {
+        destination = '/dashboard/admin';
         console.log('[LOGIN PAGE] Redirection vers le dashboard admin');
-        router.push('/dashboard/admin');
       } else {
         console.log('[LOGIN PAGE] Redirection vers le dashboard utilisateur');
-        router.push('/dashboard');
       }
+      
+      // Redirection directe via window.location pour un rechargement complet
+      window.location.href = destination;
     }
-  }, [user, router]);
+  }, [user, searchParams]);
 
+  // Effet pour la gestion des erreurs
   useEffect(() => {
     if (error) {
       setLoginError(error);
@@ -37,6 +54,7 @@ export default function LoginPage() {
     }
   }, [error]);
 
+  // Soumission du formulaire
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -44,41 +62,14 @@ export default function LoginPage() {
     
     try {
       console.log('[LOGIN PAGE] Tentative de connexion avec:', email);
-      const userRole = await login(email, password);
-      console.log('[LOGIN PAGE] Connexion réussie, rôle:', userRole);
-      
-      // Redirection basée sur le rôle
-      if (userRole === 'admin' || userRole === 'superadmin') {
-        console.log('[LOGIN PAGE] Redirection vers le dashboard admin après connexion');
-        router.push('/dashboard/admin');
-      } else {
-        console.log('[LOGIN PAGE] Redirection vers le dashboard utilisateur après connexion');
-        router.push('/dashboard');
-      }
+      await login(email, password);
+      // La redirection est gérée par l'effet useEffect ci-dessus
     } catch (err: any) {
       console.error('[LOGIN PAGE] Erreur pendant la connexion:', err);
       setLoginError(err?.message || 'Erreur de connexion. Veuillez réessayer.');
       setIsLoading(false);
     }
   };
-
-  // Fonction pour simuler une déconnexion en cas de blocage
-  const handleLoginReset = () => {
-    if (isLoading) {
-      console.log('[LOGIN PAGE] Réinitialisation de l\'état de connexion');
-      setIsLoading(false);
-      setLoginError('La connexion a pris trop de temps. Veuillez réessayer.');
-    }
-  };
-
-  // Reset automatique après 10 secondes d'attente
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (isLoading) {
-      timer = setTimeout(handleLoginReset, 10000);
-    }
-    return () => clearTimeout(timer);
-  }, [isLoading]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-50 to-indigo-50 p-4">
@@ -148,19 +139,6 @@ export default function LoginPage() {
             >
               {isLoading ? 'Connexion en cours...' : 'Se connecter'}
             </Button>
-            
-            {isLoading && (
-              <p className="text-xs text-center text-gray-500 mt-2">
-                Si la connexion prend trop de temps, veuillez 
-                <button 
-                  type="button" 
-                  onClick={handleLoginReset}
-                  className="text-primary ml-1 hover:underline"
-                >
-                  réessayer
-                </button>
-              </p>
-            )}
           </form>
           
           <div className="mt-8">

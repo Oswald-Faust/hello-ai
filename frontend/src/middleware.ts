@@ -2,36 +2,55 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  const token = request.cookies.get('token');
-  const isAuthPage = request.nextUrl.pathname.startsWith('/auth/');
-  const isHomePage = request.nextUrl.pathname === '/';
+  // Les routes qui ne nécessitent pas d'authentification
+  const publicRoutes = [
+    '/',
+    '/auth/login',
+    '/auth/register',
+    '/auth/forgot-password'
+  ];
   
-  // Si l'utilisateur n'est pas connecté et essaie d'accéder à une page protégée
-  // (exclure la page d'accueil qui est publique)
-  if (!token && !isAuthPage && !isHomePage) {
+  // Les routes d'API et ressources statiques
+  const isApiOrStatic = request.nextUrl.pathname.match(
+    /^\/(api|_next|favicon\.ico|public|static)/
+  );
+  
+  // Si c'est une ressource statique ou API, laisser passer
+  if (isApiOrStatic) {
+    return NextResponse.next();
+  }
+  
+  // Vérifier si c'est une route publique
+  const isPublicRoute = publicRoutes.some(route => 
+    request.nextUrl.pathname === route || 
+    request.nextUrl.pathname.startsWith('/auth/')
+  );
+  
+  // Si c'est une route publique, laisser passer
+  if (isPublicRoute) {
+    return NextResponse.next();
+  }
+  
+  // Vérifier si l'utilisateur est authentifié
+  const token = request.cookies.get('token');
+  
+  // Si l'utilisateur n'est pas authentifié, rediriger vers la page de connexion
+  if (!token) {
+    console.log('[MIDDLEWARE] Redirection vers login:', request.nextUrl.pathname);
+    
+    // Créer l'URL de redirection
     const loginUrl = new URL('/auth/login', request.url);
     loginUrl.searchParams.set('from', request.nextUrl.pathname);
+    
     return NextResponse.redirect(loginUrl);
   }
-
-  // Si l'utilisateur est connecté et essaie d'accéder aux pages d'auth
-  if (token && isAuthPage) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
-  }
-
+  
+  // Utilisateur authentifié, laisser passer
   return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico|public).*)',
+    '/((?!_next/static|_next/image|favicon.ico|public).*)',
   ],
 }; 

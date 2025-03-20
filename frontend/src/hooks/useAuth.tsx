@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import api from '@/services/api';
+import axios, { AxiosResponse } from 'axios';
 
 interface User {
   id: string;
@@ -14,7 +15,7 @@ export type AuthContextType = {
   user: User | null;
   error: string | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<string | undefined>;
+  login: (email: string, password: string) => Promise<void>;
   register: (userData: {
     firstName: string;
     lastName: string;
@@ -122,7 +123,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       console.log('[AUTH HOOK] Tentative de connexion pour:', email);
       
+      // Version simplifiée sans timeout
       const response = await api.post('/auth/login', { email, password });
+      
       const { token, refreshToken, user } = response.data;
       
       if (!token) {
@@ -137,16 +140,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('[AUTH HOOK] Connexion réussie pour:', email);
       console.log('[AUTH HOOK] Rôle utilisateur:', user.role);
       
+      // Mettre à jour l'état de l'utilisateur
       setUser(user);
+      setLoading(false);
       
-      // Retourner le rôle de l'utilisateur pour permettre une redirection conditionnelle
-      return user.role;
+      // Redirection directe basée sur le rôle
+      if (user.role === 'admin' || user.role === 'superadmin') {
+        console.log('[AUTH HOOK] Redirection directe vers le dashboard admin');
+        window.location.replace('/dashboard/admin'); // replace évite d'ajouter à l'historique
+      } else {
+        console.log('[AUTH HOOK] Redirection directe vers le dashboard utilisateur');
+        window.location.replace('/dashboard'); // replace évite d'ajouter à l'historique
+      }
     } catch (err: any) {
       console.error('[AUTH HOOK] Erreur lors de la connexion:', err);
-      setError(err.response?.data?.message || 'Erreur lors de la connexion');
-      throw err;
-    } finally {
+      const errorMessage = err.response?.data?.message || 'Erreur lors de la connexion';
+      setError(errorMessage);
       setLoading(false);
+      throw new Error(errorMessage);
     }
   };
 
