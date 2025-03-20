@@ -1,5 +1,6 @@
 const { Auth, VoiceServer, CreateVoiceAppOptions } = require('@fonoster/sdk');
 const logger = require('../utils/logger');
+const voiceService = require('./voiceService');
 
 let fonosterClient = null;
 let voiceServer = null;
@@ -125,10 +126,63 @@ const configureWebhook = async (appId, webhookUrl) => {
  * Générer une réponse vocale pour un appel entrant
  * @param {string} message - Message à dire à l'appelant
  * @param {Object} options - Options supplémentaires
+ * @param {Object} company - Objet entreprise (optionnel)
  * @returns {Object} - Réponse compatible avec l'API de Fonoster
  */
-const generateVoiceResponse = (message, options = {}) => {
-  // Fonoster utilise un format JSON pour définir ses réponses vocales
+const generateVoiceResponse = async (message, options = {}, company = null) => {
+  // Si l'entreprise est fournie et utilise Fish Audio, générer l'audio avec ce service
+  if (company && company.voiceAssistant && company.voiceAssistant.voice && 
+      company.voiceAssistant.voice.provider === 'fishaudio') {
+    try {
+      // Générer le fichier audio avec Fish Audio
+      const audioFilePath = await voiceService.generateAudio(message, company.voiceAssistant.voice);
+      
+      // Fonoster utilise un format JSON pour définir ses réponses vocales avec un fichier audio
+      const response = {
+        play: {
+          url: audioFilePath
+        }
+      };
+      
+      // Si on doit collecter des informations de l'utilisateur
+      if (options.gather) {
+        response.gather = {
+          timeout: options.gather.timeout || 5,
+          finishOnKey: options.gather.finishOnKey || '#',
+          numDigits: options.gather.numDigits,
+          hints: options.gather.hints || [],
+          speechTimeout: options.gather.speechTimeout || 'auto',
+          action: options.gather.action
+        };
+        
+        if (options.gather.prompt) {
+          // Générer le fichier audio pour le prompt
+          const promptAudioPath = await voiceService.generateAudio(
+            options.gather.prompt, 
+            company.voiceAssistant.voice
+          );
+          
+          response.gather.play = {
+            url: promptAudioPath
+          };
+        }
+      }
+      
+      // Si on doit rediriger vers un humain
+      if (options.redirect) {
+        response.dial = {
+          calleeNumber: options.redirect
+        };
+      }
+      
+      return response;
+    } catch (error) {
+      logger.error('Erreur lors de la génération audio avec Fish Audio, fallback sur Fonoster:', error);
+      // En cas d'erreur, on revient au comportement par défaut de Fonoster
+    }
+  }
+  
+  // Comportement par défaut avec Fonoster
   const response = {
     say: {
       text: message,

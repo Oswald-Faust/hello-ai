@@ -91,7 +91,6 @@ const UserSchema = new Schema({
 });
 
 // Créer des index pour améliorer les performances des recherches
-UserSchema.index({ email: 1 }, { unique: true });
 UserSchema.index({ company: 1 });
 
 // Méthode pour comparer les mots de passe

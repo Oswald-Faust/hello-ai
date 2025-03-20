@@ -3,6 +3,8 @@ const User = require('../models/User');
 const fonosterService = require('../services/fonosterService');
 const logger = require('../utils/logger');
 const { errorResponse, successResponse } = require('../utils/responseHandler');
+const mongoose = require('mongoose');
+const openaiService = require('../services/openaiService');
 
 /**
  * Créer une nouvelle entreprise
@@ -624,6 +626,394 @@ exports.updateCompanySettings = async (req, res, next) => {
     return successResponse(res, 200, 'Paramètres de l\'entreprise mis à jour avec succès', { company });
   } catch (error) {
     logger.error('[COMPANY CONTROLLER] Erreur lors de la mise à jour des paramètres de l\'entreprise:', error);
+    next(error);
+  }
+};
+
+/**
+ * Mettre à jour les prompts de l'assistant vocal d'une entreprise
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
+exports.updateVoiceAssistantPrompts = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    
+    // Vérifier que l'ID d'entreprise est valide
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json(errorResponse('ID d\'entreprise invalide'));
+    }
+    
+    // Trouver l'entreprise
+    const company = await Company.findById(id);
+    if (!company) {
+      return res.status(404).json(errorResponse('Entreprise non trouvée'));
+    }
+    
+    // Vérifier que l'utilisateur a les droits d'accès à cette entreprise
+    if (!req.user.isAdmin && req.user.company.toString() !== id) {
+      return res.status(403).json(errorResponse('Vous n\'avez pas les droits pour modifier cette entreprise'));
+    }
+    
+    // Si voiceAssistant n'existe pas, l'initialiser
+    if (!company.voiceAssistant) {
+      company.voiceAssistant = {
+        prompts: {},
+        companyInfo: {},
+        voice: {}
+      };
+    }
+    
+    // Mettre à jour les prompts
+    if (updates.prompts) {
+      company.voiceAssistant.prompts = {
+        ...company.voiceAssistant.prompts,
+        ...updates.prompts
+      };
+    }
+    
+    // Mettre à jour les informations de l'entreprise
+    if (updates.companyInfo) {
+      company.voiceAssistant.companyInfo = {
+        ...company.voiceAssistant.companyInfo,
+        ...updates.companyInfo
+      };
+    }
+    
+    // Mettre à jour la configuration de la voix
+    if (updates.voice) {
+      company.voiceAssistant.voice = {
+        ...company.voiceAssistant.voice,
+        ...updates.voice
+      };
+    }
+    
+    // Sauvegarder les modifications
+    await company.save();
+    
+    res.status(200).json(successResponse('Prompts de l\'assistant vocal mis à jour avec succès', company.voiceAssistant));
+  } catch (error) {
+    logger.error('Erreur lors de la mise à jour des prompts de l\'assistant vocal:', error);
+    res.status(500).json(errorResponse('Erreur lors de la mise à jour des prompts de l\'assistant vocal'));
+  }
+};
+
+/**
+ * Obtenir les prompts de l'assistant vocal d'une entreprise
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
+exports.getVoiceAssistantPrompts = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Vérifier que l'ID d'entreprise est valide
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json(errorResponse('ID d\'entreprise invalide'));
+    }
+    
+    // Trouver l'entreprise
+    const company = await Company.findById(id);
+    if (!company) {
+      return res.status(404).json(errorResponse('Entreprise non trouvée'));
+    }
+    
+    // Vérifier que l'utilisateur a les droits d'accès à cette entreprise
+    if (!req.user.isAdmin && req.user.company.toString() !== id) {
+      return res.status(403).json(errorResponse('Vous n\'avez pas les droits pour accéder à cette entreprise'));
+    }
+    
+    res.status(200).json(successResponse('Prompts de l\'assistant vocal récupérés avec succès', company.voiceAssistant || {}));
+  } catch (error) {
+    logger.error('Erreur lors de la récupération des prompts de l\'assistant vocal:', error);
+    res.status(500).json(errorResponse('Erreur lors de la récupération des prompts de l\'assistant vocal'));
+  }
+};
+
+/**
+ * Créer un nouveau scénario pour l'assistant vocal
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
+exports.createVoiceAssistantScenario = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description, prompt, requiredVariables = [], triggers = [], actions = [] } = req.body;
+    
+    // Vérifier que l'ID d'entreprise est valide
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json(errorResponse('ID d\'entreprise invalide'));
+    }
+    
+    // Vérifier que les champs obligatoires sont présents
+    if (!name || !prompt) {
+      return res.status(400).json(errorResponse('Le nom et le prompt sont obligatoires'));
+    }
+    
+    // Trouver l'entreprise
+    const company = await Company.findById(id);
+    if (!company) {
+      return res.status(404).json(errorResponse('Entreprise non trouvée'));
+    }
+    
+    // Vérifier que l'utilisateur a les droits d'accès à cette entreprise
+    if (!req.user.isAdmin && req.user.company.toString() !== id) {
+      return res.status(403).json(errorResponse('Vous n\'avez pas les droits pour modifier cette entreprise'));
+    }
+    
+    // Initialiser la structure voiceAssistant si elle n'existe pas
+    if (!company.voiceAssistant) {
+      company.voiceAssistant = {
+        prompts: {
+          scenarios: []
+        },
+        companyInfo: {},
+        voice: {}
+      };
+    } else if (!company.voiceAssistant.prompts) {
+      company.voiceAssistant.prompts = {
+        scenarios: []
+      };
+    } else if (!company.voiceAssistant.prompts.scenarios) {
+      company.voiceAssistant.prompts.scenarios = [];
+    }
+    
+    // Vérifier si un scénario avec le même nom existe déjà
+    const existingScenarioIndex = company.voiceAssistant.prompts.scenarios.findIndex(
+      scenario => scenario.name === name
+    );
+    
+    if (existingScenarioIndex !== -1) {
+      return res.status(400).json(errorResponse('Un scénario avec ce nom existe déjà'));
+    }
+    
+    // Créer le nouveau scénario
+    const newScenario = {
+      name,
+      description,
+      prompt,
+      requiredVariables,
+      triggers,
+      actions
+    };
+    
+    // Ajouter le scénario
+    company.voiceAssistant.prompts.scenarios.push(newScenario);
+    
+    // Sauvegarder les modifications
+    await company.save();
+    
+    res.status(201).json(successResponse('Scénario créé avec succès', newScenario));
+  } catch (error) {
+    logger.error('Erreur lors de la création du scénario:', error);
+    res.status(500).json(errorResponse('Erreur lors de la création du scénario'));
+  }
+};
+
+/**
+ * Mettre à jour un scénario existant
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
+exports.updateVoiceAssistantScenario = async (req, res) => {
+  try {
+    const { id, scenarioName } = req.params;
+    const updates = req.body;
+    
+    // Vérifier que l'ID d'entreprise est valide
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json(errorResponse('ID d\'entreprise invalide'));
+    }
+    
+    // Trouver l'entreprise
+    const company = await Company.findById(id);
+    if (!company) {
+      return res.status(404).json(errorResponse('Entreprise non trouvée'));
+    }
+    
+    // Vérifier que l'utilisateur a les droits d'accès à cette entreprise
+    if (!req.user.isAdmin && req.user.company.toString() !== id) {
+      return res.status(403).json(errorResponse('Vous n\'avez pas les droits pour modifier cette entreprise'));
+    }
+    
+    // Vérifier que voiceAssistant et les scénarios existent
+    if (!company.voiceAssistant || !company.voiceAssistant.prompts || !company.voiceAssistant.prompts.scenarios) {
+      return res.status(404).json(errorResponse('Configuration de l\'assistant vocal non trouvée'));
+    }
+    
+    // Trouver l'index du scénario à mettre à jour
+    const scenarioIndex = company.voiceAssistant.prompts.scenarios.findIndex(
+      scenario => scenario.name === scenarioName
+    );
+    
+    if (scenarioIndex === -1) {
+      return res.status(404).json(errorResponse('Scénario non trouvé'));
+    }
+    
+    // Mettre à jour le scénario
+    company.voiceAssistant.prompts.scenarios[scenarioIndex] = {
+      ...company.voiceAssistant.prompts.scenarios[scenarioIndex],
+      ...updates
+    };
+    
+    // Sauvegarder les modifications
+    await company.save();
+    
+    res.status(200).json(successResponse('Scénario mis à jour avec succès', company.voiceAssistant.prompts.scenarios[scenarioIndex]));
+  } catch (error) {
+    logger.error('Erreur lors de la mise à jour du scénario:', error);
+    res.status(500).json(errorResponse('Erreur lors de la mise à jour du scénario'));
+  }
+};
+
+/**
+ * Supprimer un scénario
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
+exports.deleteVoiceAssistantScenario = async (req, res) => {
+  try {
+    const { id, scenarioName } = req.params;
+    
+    // Vérifier que l'ID d'entreprise est valide
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json(errorResponse('ID d\'entreprise invalide'));
+    }
+    
+    // Trouver l'entreprise
+    const company = await Company.findById(id);
+    if (!company) {
+      return res.status(404).json(errorResponse('Entreprise non trouvée'));
+    }
+    
+    // Vérifier que l'utilisateur a les droits d'accès à cette entreprise
+    if (!req.user.isAdmin && req.user.company.toString() !== id) {
+      return res.status(403).json(errorResponse('Vous n\'avez pas les droits pour modifier cette entreprise'));
+    }
+    
+    // Vérifier que voiceAssistant et les scénarios existent
+    if (!company.voiceAssistant || !company.voiceAssistant.prompts || !company.voiceAssistant.prompts.scenarios) {
+      return res.status(404).json(errorResponse('Configuration de l\'assistant vocal non trouvée'));
+    }
+    
+    // Trouver l'index du scénario à supprimer
+    const scenarioIndex = company.voiceAssistant.prompts.scenarios.findIndex(
+      scenario => scenario.name === scenarioName
+    );
+    
+    if (scenarioIndex === -1) {
+      return res.status(404).json(errorResponse('Scénario non trouvé'));
+    }
+    
+    // Supprimer le scénario
+    company.voiceAssistant.prompts.scenarios.splice(scenarioIndex, 1);
+    
+    // Sauvegarder les modifications
+    await company.save();
+    
+    res.status(200).json(successResponse('Scénario supprimé avec succès'));
+  } catch (error) {
+    logger.error('Erreur lors de la suppression du scénario:', error);
+    res.status(500).json(errorResponse('Erreur lors de la suppression du scénario'));
+  }
+};
+
+/**
+ * Tester un prompt avec des variables spécifiques
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
+exports.testVoiceAssistantPrompt = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { prompt, variables, userInput } = req.body;
+    
+    // Vérifier que l'ID d'entreprise est valide
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json(errorResponse('ID d\'entreprise invalide'));
+    }
+    
+    // Vérifier que les champs obligatoires sont présents
+    if (!prompt) {
+      return res.status(400).json(errorResponse('Le prompt est obligatoire'));
+    }
+    
+    // Trouver l'entreprise
+    const company = await Company.findById(id);
+    if (!company) {
+      return res.status(404).json(errorResponse('Entreprise non trouvée'));
+    }
+    
+    // Vérifier que l'utilisateur a les droits d'accès à cette entreprise
+    if (!req.user.isAdmin && req.user.company.toString() !== id) {
+      return res.status(403).json(errorResponse('Vous n\'avez pas les droits pour accéder à cette entreprise'));
+    }
+    
+    // Fusion des variables avec les variables de base
+    const allVariables = {
+      companyName: company.name,
+      ...variables
+    };
+    
+    // Traiter le prompt
+    const processedPrompt = openaiService.processPrompt(prompt, allVariables);
+    
+    // Si userInput est fourni, générer une réponse avec OpenAI
+    let aiResponse = null;
+    if (userInput) {
+      try {
+        // Créer un objet company temporaire avec le prompt de test
+        const tempCompany = {
+          ...company.toObject(),
+          voiceAssistant: {
+            ...company.voiceAssistant?.toObject(),
+            prompts: {
+              baseSystemPrompt: processedPrompt
+            }
+          }
+        };
+        
+        const response = await openaiService.generateResponse(userInput, tempCompany);
+        aiResponse = response.response;
+      } catch (error) {
+        logger.error('Erreur lors du test avec OpenAI:', error);
+        aiResponse = "Erreur lors de la génération de la réponse.";
+      }
+    }
+    
+    res.status(200).json(successResponse('Test du prompt effectué avec succès', { 
+      processedPrompt,
+      aiResponse
+    }));
+  } catch (error) {
+    logger.error('Erreur lors du test du prompt:', error);
+    res.status(500).json(errorResponse('Erreur lors du test du prompt'));
+  }
+};
+
+/**
+ * Récupérer les paramètres d'une entreprise
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ * @param {Function} next - Fonction next d'Express
+ */
+exports.getCompanySettings = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    const company = await Company.findById(id);
+    
+    if (!company) {
+      return errorResponse(res, 404, 'Entreprise non trouvée');
+    }
+    
+    return successResponse(res, 200, 'Paramètres récupérés avec succès', { 
+      settings: company.settings || {},
+      voiceAssistant: company.voiceAssistant || {}
+    });
+  } catch (error) {
+    logger.error('Erreur lors de la récupération des paramètres de l\'entreprise:', error);
     next(error);
   }
 };

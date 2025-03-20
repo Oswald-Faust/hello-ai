@@ -1,7 +1,7 @@
 ---
-description: How i like to code
+description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
 - Focus on the areas of code relevant to the task
 - Do not touch code that is unrelated to the task

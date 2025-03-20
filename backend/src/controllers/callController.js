@@ -16,12 +16,12 @@ exports.handleIncomingCall = async (req, res) => {
     const { To, From, CallSid } = req.body;
     
     // Trouver l'entreprise associée au numéro appelé
-    const company = await Company.findOne({ fonosterPhoneNumber: To });
+    const company = await Company.findById(req.params.companyId).populate('voiceAssistant');
     
     if (!company) {
-      logger.error(`Aucune entreprise trouvée pour le numéro ${To}`);
+      logger.error(`Aucune entreprise trouvée pour l'ID ${req.params.companyId}`);
       return res.status(404).json(
-        fonosterService.generateVoiceResponse(
+        await fonosterService.generateVoiceResponse(
           "Désolé, ce numéro n'est pas configuré correctement. Veuillez réessayer plus tard."
         )
       );
@@ -31,8 +31,10 @@ exports.handleIncomingCall = async (req, res) => {
     if (!company.isOpenNow()) {
       logger.info(`Appel reçu en dehors des heures d'ouverture pour ${company.name}`);
       return res.status(200).json(
-        fonosterService.generateVoiceResponse(
-          `Merci d'avoir appelé ${company.name}. Nous sommes actuellement fermés. Veuillez nous rappeler pendant nos heures d'ouverture.`
+        await fonosterService.generateVoiceResponse(
+          `Merci d'avoir appelé ${company.name}. Nous sommes actuellement fermés. Veuillez nous rappeler pendant nos heures d'ouverture.`,
+          {},
+          company
         )
       );
     }
@@ -56,28 +58,39 @@ exports.handleIncomingCall = async (req, res) => {
       startTime: call.startTime
     });
     
+    // Récupérer le message d'accueil personnalisé
+    let welcomeMessage = "Bonjour et bienvenue. Comment puis-je vous aider?";
+    
+    if (company.voiceAssistant && company.voiceAssistant.prompts && company.voiceAssistant.prompts.welcomePrompt) {
+      welcomeMessage = company.voiceAssistant.prompts.welcomePrompt;
+      
+      // Remplacer les variables
+      welcomeMessage = welcomeMessage.replace(/{{companyName}}/g, company.name);
+    }
+    
     // Générer la réponse vocale avec le message d'accueil
-    const voiceResponse = fonosterService.generateVoiceResponse(
-      company.voiceConfig.welcomeMessage,
+    const voiceResponse = await fonosterService.generateVoiceResponse(
+      welcomeMessage,
       {
-        voice: company.voiceConfig.voice,
-        language: company.voiceConfig.language,
+        voice: company.voiceAssistant?.voice?.gender || 'female',
+        language: 'fr-FR',
         gather: {
           action: `/api/calls/${call._id}/process-speech`,
           prompt: "Comment puis-je vous aider aujourd'hui?"
         }
-      }
+      },
+      company
     );
     
     // Ajouter le message d'accueil au transcript
-    call.addToTranscript('lydia', company.voiceConfig.welcomeMessage);
+    call.addToTranscript('lydia', welcomeMessage);
     await call.save();
     
     return res.status(200).json(voiceResponse);
   } catch (error) {
     logger.error('Erreur lors du traitement de l\'appel entrant:', error);
     return res.status(500).json(
-      fonosterService.generateVoiceResponse(
+      await fonosterService.generateVoiceResponse(
         "Désolé, une erreur s'est produite. Veuillez réessayer plus tard."
       )
     );
@@ -97,7 +110,7 @@ exports.processSpeech = async (req, res) => {
     // Si aucun résultat de parole n'est disponible
     if (!SpeechResult) {
       return res.status(200).json(
-        fonosterService.generateVoiceResponse(
+        await fonosterService.generateVoiceResponse(
           "Je n'ai pas pu comprendre ce que vous avez dit. Pourriez-vous répéter s'il vous plaît?",
           {
             gather: {
@@ -114,17 +127,17 @@ exports.processSpeech = async (req, res) => {
     if (!call) {
       logger.error(`Appel non trouvé: ${callId}`);
       return res.status(404).json(
-        fonosterService.generateVoiceResponse(
+        await fonosterService.generateVoiceResponse(
           "Désolé, une erreur s'est produite. Veuillez réessayer plus tard."
         )
       );
     }
     
-    const company = await Company.findById(call.company);
+    const company = await Company.findById(call.company).populate('voiceAssistant');
     if (!company) {
       logger.error(`Entreprise non trouvée pour l'appel: ${callId}`);
       return res.status(404).json(
-        fonosterService.generateVoiceResponse(
+        await fonosterService.generateVoiceResponse(
           "Désolé, une erreur s'est produite. Veuillez réessayer plus tard."
         )
       );
@@ -141,7 +154,7 @@ exports.processSpeech = async (req, res) => {
     });
     
     // Vérifier si l'utilisateur demande explicitement un transfert
-    const needsTransfer = await openaiService.needsHumanTransfer(SpeechResult);
+    const needsTransfer = await openaiService.needsHumanTransfer(SpeechResult, company);
     
     if (needsTransfer) {
       // Mettre à jour l'appel
@@ -156,15 +169,26 @@ exports.processSpeech = async (req, res) => {
         reason: 'demande-client'
       });
       
+      // Obtenir le message de transfert personnalisé
+      let transferMessage = "Je vais vous transférer à un conseiller qui pourra mieux vous aider.";
+      
+      if (company.voiceAssistant && company.voiceAssistant.prompts && company.voiceAssistant.prompts.transferPrompt) {
+        transferMessage = company.voiceAssistant.prompts.transferPrompt;
+        
+        // Remplacer les variables
+        transferMessage = transferMessage.replace(/{{companyName}}/g, company.name);
+      }
+      
       // Générer la réponse vocale pour le transfert
       return res.status(200).json(
-        fonosterService.generateVoiceResponse(
-          company.voiceConfig.transferMessage,
+        await fonosterService.generateVoiceResponse(
+          transferMessage,
           {
-            voice: company.voiceConfig.voice,
-            language: company.voiceConfig.language,
-            redirect: company.transferSettings.humanPhoneNumber
-          }
+            voice: company.voiceAssistant?.voice?.gender || 'female',
+            language: 'fr-FR',
+            redirect: company.transferSettings?.humanPhoneNumber
+          },
+          company
         )
       );
     }
@@ -185,27 +209,24 @@ exports.processSpeech = async (req, res) => {
       
       // Générer la réponse vocale avec la réponse personnalisée
       return res.status(200).json(
-        fonosterService.generateVoiceResponse(
+        await fonosterService.generateVoiceResponse(
           customResponse,
           {
-            voice: company.voiceConfig.voice,
-            language: company.voiceConfig.language,
+            voice: company.voiceAssistant?.voice?.gender || 'female',
+            language: 'fr-FR',
             gather: {
               action: `/api/calls/${callId}/process-speech`,
               prompt: "Y a-t-il autre chose que je puisse faire pour vous?"
             }
-          }
+          },
+          company
         )
       );
     }
     
-    // Générer une réponse avec OpenAI
-    const companyConfig = {
-      companyName: company.name,
-      description: `Vous êtes l'assistant vocal de ${company.name}.`,
-      tone: company.voiceConfig.tone,
-      style: company.voiceConfig.style
-    };
+    // Détecter l'intention de l'utilisateur pour choisir le scénario approprié
+    const intentAnalysis = await openaiService.detectIntent(SpeechResult, company);
+    logger.info(`Intention détectée: ${intentAnalysis.primaryIntent}, scénario recommandé: ${intentAnalysis.recommendedScenario}`);
     
     // Récupérer l'historique des conversations pour le contexte
     const history = call.transcript.map(entry => ({
@@ -213,11 +234,27 @@ exports.processSpeech = async (req, res) => {
       content: entry.text
     }));
     
-    const aiResponse = await openaiService.generateResponse(
+    // Générer une réponse avec OpenAI en utilisant le scénario recommandé si disponible
+    const aiResponseData = await openaiService.generateResponse(
       SpeechResult,
-      companyConfig,
-      { history }
+      company,
+      { history },
+      intentAnalysis.recommendedScenario
     );
+    
+    // Extraire la réponse et les actions à partir de la réponse d'OpenAI
+    const aiResponse = aiResponseData.response;
+    const actions = aiResponseData.actions;
+    
+    // Traiter les actions détectées
+    if (actions && actions.length > 0) {
+      logger.info(`Actions détectées dans la réponse: ${actions.join(', ')}`);
+      
+      // Stocker les actions dans les métadonnées de l'appel
+      if (!call.metadata) call.metadata = new Map();
+      call.metadata.set('detectedActions', actions.join(','));
+      call.metadata.set('lastScenario', intentAnalysis.recommendedScenario || 'default');
+    }
     
     // Ajouter la réponse au transcript
     call.addToTranscript('lydia', aiResponse);
@@ -229,24 +266,25 @@ exports.processSpeech = async (req, res) => {
       transcript: call.transcript
     });
     
-    // Générer la réponse vocale avec la réponse de l'IA
+    // Générer la réponse vocale avec la réponse générative
     return res.status(200).json(
-      fonosterService.generateVoiceResponse(
+      await fonosterService.generateVoiceResponse(
         aiResponse,
         {
-          voice: company.voiceConfig.voice,
-          language: company.voiceConfig.language,
+          voice: company.voiceAssistant?.voice?.gender || 'female',
+          language: 'fr-FR',
           gather: {
             action: `/api/calls/${callId}/process-speech`,
             prompt: "Y a-t-il autre chose que je puisse faire pour vous?"
           }
-        }
+        },
+        company
       )
     );
   } catch (error) {
     logger.error('Erreur lors du traitement de la parole:', error);
     return res.status(500).json(
-      fonosterService.generateVoiceResponse(
+      await fonosterService.generateVoiceResponse(
         "Désolé, une erreur s'est produite. Veuillez réessayer plus tard."
       )
     );

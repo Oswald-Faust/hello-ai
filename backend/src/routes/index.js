@@ -1,19 +1,21 @@
 const express = require('express');
 const router = express.Router();
 
-// Importer les routes spécifiques
-const companyRoutes = require('./companyRoutes');
-const callRoutes = require('./callRoutes');
-const userRoutes = require('./userRoutes');
+// Importer les routes
 const authRoutes = require('./authRoutes');
 const adminRoutes = require('./adminRoutes');
+const companyRoutes = require('./companyRoutes');
+const userRoutes = require('./userRoutes');
+const callRoutes = require('./callRoutes');
+const voiceRoutes = require('./voiceRoutes');
 
-// Définir les routes principales
-router.use('/companies', companyRoutes);
-router.use('/calls', callRoutes);
-router.use('/users', userRoutes);
+// Monter les routes
 router.use('/auth', authRoutes);
 router.use('/admin', adminRoutes);
+router.use('/companies', companyRoutes);
+router.use('/users', userRoutes);
+router.use('/calls', callRoutes);
+router.use('/voices', voiceRoutes);
 
 // Route de base pour vérifier que l'API fonctionne
 router.get('/', (req, res) => {

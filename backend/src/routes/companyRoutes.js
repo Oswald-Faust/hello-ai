@@ -41,16 +41,9 @@ router.get('/:id', authenticate, companyController.getCompanyById);
 /**
  * @route   PUT /api/companies/:id
  * @desc    Mettre à jour une entreprise
- * @access  Private/Admin
+ * @access  Private
  */
-router.put('/:id', authenticate, authorize(['admin']), companyController.updateCompany);
-
-/**
- * @route   PATCH /api/companies/:id/settings
- * @desc    Mettre à jour les paramètres d'une entreprise
- * @access  Private/Admin
- */
-router.patch('/:companyId/settings', authenticate, authorize(['admin']), companyController.updateCompanySettings);
+router.put('/:id', authenticate, companyController.updateCompany);
 
 /**
  * @route   DELETE /api/companies/:id
@@ -60,18 +53,60 @@ router.patch('/:companyId/settings', authenticate, authorize(['admin']), company
 router.delete('/:id', authenticate, authorize(['admin']), companyController.deleteCompany);
 
 /**
- * @route   PATCH /api/companies/:id/status
- * @desc    Activer/désactiver une entreprise
- * @access  Private/Admin
+ * @route   GET /api/companies/:id/settings
+ * @desc    Récupérer les paramètres d'une entreprise
+ * @access  Private
  */
-router.patch('/:id/status', authenticate, authorize(['admin']), companyController.toggleCompanyStatus);
+router.get('/:id/settings', authenticate, companyController.getCompanySettings);
 
 /**
- * @route   PATCH /api/companies/:id/subscription
- * @desc    Mettre à jour l'abonnement d'une entreprise
- * @access  Private/Admin
+ * @route   PUT /api/companies/:id/settings
+ * @desc    Mettre à jour les paramètres d'une entreprise
+ * @access  Private
  */
-router.patch('/:id/subscription', authenticate, authorize(['admin']), companyController.updateSubscription);
+router.put('/:id/settings', authenticate, companyController.updateCompanySettings);
+
+/**
+ * @route   GET /api/companies/:id/voice-assistant
+ * @desc    Récupérer la configuration de l'assistant vocal
+ * @access  Private
+ */
+router.get('/:id/voice-assistant', authenticate, companyController.getVoiceAssistantPrompts);
+
+/**
+ * @route   PUT /api/companies/:id/voice-assistant
+ * @desc    Mettre à jour la configuration de l'assistant vocal
+ * @access  Private
+ */
+router.put('/:id/voice-assistant', authenticate, companyController.updateVoiceAssistantPrompts);
+
+/**
+ * @route   POST /api/companies/:id/voice-assistant/scenarios
+ * @desc    Créer un nouveau scénario pour l'assistant vocal
+ * @access  Private
+ */
+router.post('/:id/voice-assistant/scenarios', authenticate, companyController.createVoiceAssistantScenario);
+
+/**
+ * @route   PUT /api/companies/:id/voice-assistant/scenarios/:scenarioName
+ * @desc    Mettre à jour un scénario existant
+ * @access  Private
+ */
+router.put('/:id/voice-assistant/scenarios/:scenarioName', authenticate, companyController.updateVoiceAssistantScenario);
+
+/**
+ * @route   DELETE /api/companies/:id/voice-assistant/scenarios/:scenarioName
+ * @desc    Supprimer un scénario
+ * @access  Private
+ */
+router.delete('/:id/voice-assistant/scenarios/:scenarioName', authenticate, companyController.deleteVoiceAssistantScenario);
+
+/**
+ * @route   POST /api/companies/:id/voice-assistant/test-prompt
+ * @desc    Tester un prompt avec des variables spécifiques
+ * @access  Private
+ */
+router.post('/:id/voice-assistant/test-prompt', authenticate, companyController.testVoiceAssistantPrompt);
 
 // Routes pour la gestion des numéros de téléphone
 router.post('/:companyId/phone-number', authenticate, authorize(['companyAdmin']), companyController.purchasePhoneNumber);
