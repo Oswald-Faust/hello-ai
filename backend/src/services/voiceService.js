@@ -9,8 +9,8 @@ const path = require('path');
  */
 
 // Configuration par défaut pour Fish Audio
-const FISH_AUDIO_API_URL = process.env.FISH_AUDIO_API_URL || 'https://api.fishaudio.cloud';
-const FISH_AUDIO_API_KEY = process.env.FISH_AUDIO_API_KEY;
+const FISH_AUDIO_API_URL = 'https://api.fish.audio/v1/tts';
+const FISH_AUDIO_API_KEY = '5fe6e1f02cb54fe5bac8745d9096c737';
 
 // Répertoire de cache pour les fichiers audio
 const AUDIO_CACHE_DIR = path.join(process.cwd(), 'audio_cache');
