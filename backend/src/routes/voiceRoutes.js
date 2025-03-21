@@ -82,6 +82,11 @@ router.post('/generate/:id', authenticate, voiceController.generateCompanyAudio)
 // Route pour tester la conversation avec OpenAI et génération vocale
 router.post('/conversation', authenticate, voiceController.testConversationWithVoice);
 
+// Routes pour Hugging Face et gTTS (alternatives gratuites)
+router.post('/hf-conversation', authenticate, voiceController.generateConversation);
+router.get('/download/:fileName', voiceController.downloadAudio);
+router.post('/sentiment', authenticate, voiceController.analyzeSentiment);
+
 // === Routes pour la compatibilité avec l'ancien système ===
 
 // Anciennes routes de test (redirection vers les nouvelles routes)

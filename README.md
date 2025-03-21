@@ -11,6 +11,48 @@ Lydia est un service SaaS permettant aux entreprises d'automatiser la gestion de
 - **Transfert intelligent vers un humain** lorsque nécessaire
 - **Tableau de bord analytique** pour suivre les performances
 
+## Alternatives Gratuites
+
+Ce projet prend en charge plusieurs alternatives gratuites pour la génération de voix et de texte :
+
+### Génération de Texte
+- **Hugging Face** (gratuit) : Utilisez l'API Hugging Face avec des modèles comme Mistral-7B pour générer des réponses textuelles sans frais.
+  - Créez un compte sur [Hugging Face](https://huggingface.co/)
+  - Obtenez une clé API gratuite dans les paramètres de votre compte
+  - Configurez `HUGGINGFACE_API_KEY` et `HUGGINGFACE_MODEL` dans votre fichier `.env`
+
+### Synthèse Vocale (TTS)
+- **Google TTS** (gratuit) : Utilisez la bibliothèque node-gtts qui fonctionne sans clé API.
+  - Prend en charge plusieurs langues
+  - Ne nécessite pas de configuration supplémentaire
+
+### Routes API pour les alternatives gratuites
+
+```
+# Générer une conversation avec Hugging Face et audio avec gTTS
+POST /api/voices/hf-conversation
+Body: {
+  "text": "Texte à traiter",
+  "voice": {
+    "language": "fr",
+    "speed": 1.0
+  },
+  "company": {
+    "name": "Nom de l'entreprise",
+    "description": "Description de l'entreprise"
+  }
+}
+
+# Télécharger un fichier audio généré
+GET /api/voices/download/:fileName
+
+# Analyser le sentiment d'un texte
+POST /api/voices/sentiment
+Body: {
+  "text": "Texte à analyser"
+}
+```
+
 ## Architecture technique
 
 - **Backend**: Node.js (Express), Twilio, OpenAI API, Google Speech-to-Text
@@ -61,4 +103,4 @@ npm run dev
 
 ## Licence
 
-Tous droits réservés © 2023 
+Tous droits réservés © 2023

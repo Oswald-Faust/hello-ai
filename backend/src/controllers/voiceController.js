@@ -7,6 +7,17 @@ const fs = require('fs').promises;
 const { v4: uuidv4 } = require('uuid');
 const multer = require('multer');
 const openaiService = require('../services/openaiService');
+const huggingfaceService = require('../services/huggingfaceService');
+const gtts = require('node-gtts')('fr');
+const fsSync = require('fs');
+
+// Répertoire pour stocker les fichiers audio temporaires
+const AUDIO_CACHE_DIR = process.env.TTS_CACHE_DIR || 'audio_cache';
+
+// Créer le répertoire de cache s'il n'existe pas
+if (!fsSync.existsSync(AUDIO_CACHE_DIR)) {
+  fsSync.mkdirSync(AUDIO_CACHE_DIR, { recursive: true });
+}
 
 // Configuration pour l'upload des fichiers audio
 const storage = multer.diskStorage({
@@ -276,7 +287,7 @@ const generateCompanyAudioController = async (req, res) => {
  */
 const testConversationWithVoice = async (req, res) => {
   try {
-    const { text, voice, companyInfo, useOpenAI = false } = req.body;
+    const { text, voice, companyInfo } = req.body;
     
     if (!text) {
       return validationErrorResponse(res, 'Le texte à envoyer est requis');
@@ -295,29 +306,13 @@ const testConversationWithVoice = async (req, res) => {
       }
     };
     
-    logger.info(`Test de conversation ${useOpenAI ? 'avec OpenAI' : 'simulée'}: "${text.substring(0, 50)}..."`);
+    logger.info(`Test de conversation avec OpenAI: "${text.substring(0, 50)}..."`);
     
-    // Variable pour stocker la réponse AI
-    let aiResponse;
+    // Générer une réponse avec OpenAI
+    const aiResponseData = await openaiService.generateResponse(text, company);
+    const aiResponse = aiResponseData.response;
     
-    if (useOpenAI) {
-      // Utiliser OpenAI si explicitement demandé (attention aux coûts)
-      try {
-        const aiResponseData = await openaiService.generateResponse(text, company);
-        aiResponse = aiResponseData.response;
-        logger.info(`Réponse OpenAI obtenue: "${aiResponse.substring(0, 50)}..."`);
-      } catch (openaiError) {
-        logger.error('Erreur OpenAI:', openaiError);
-        
-        // Utiliser le mode simulation en cas d'erreur OpenAI
-        aiResponse = simulateAIResponse(text, company);
-        logger.info(`Utilisation de la réponse simulée suite à une erreur OpenAI: "${aiResponse.substring(0, 50)}..."`);
-      }
-    } else {
-      // Mode simulation (gratuit) - génère une réponse sans appel API
-      aiResponse = simulateAIResponse(text, company);
-      logger.info(`Réponse simulée générée: "${aiResponse.substring(0, 50)}..."`);
-    }
+    logger.info(`Réponse OpenAI obtenue: "${aiResponse.substring(0, 50)}..."`);
     
     // Valeurs par défaut pour les tests
     const voiceConfig = {
@@ -329,7 +324,7 @@ const testConversationWithVoice = async (req, res) => {
     };
     
     // Générer l'audio de la réponse
-    logger.info(`Génération audio pour la réponse`);
+    logger.info(`Génération audio pour la réponse OpenAI`);
     const audioFilePath = await voiceService.generateAudio(aiResponse, voiceConfig);
     
     // Calcul du nom de fichier pour l'URL
@@ -339,15 +334,14 @@ const testConversationWithVoice = async (req, res) => {
     return successResponse(res, 200, 'Conversation testée avec succès', { 
       input: text,
       response: aiResponse,
-      mode: useOpenAI ? 'openai' : 'simulation',
       audioFilePath,
       downloadUrl
     });
   } catch (error) {
-    logger.error('Erreur lors du test de conversation:', error);
+    logger.error('Erreur lors du test de conversation avec OpenAI:', error);
     
     if (error.message && error.message.includes('non configurée')) {
-      return errorResponse(res, 403, 'Clés API non configurées. Utilisez le mode simulation (useOpenAI=false).');
+      return errorResponse(res, 403, 'Clés API non configurées. Vérifiez votre configuration OpenAI ou gTTS.');
     }
     
     return errorResponse(res, 500, error.message || 'Erreur lors du test de conversation');
@@ -355,39 +349,134 @@ const testConversationWithVoice = async (req, res) => {
 };
 
 /**
- * Simule une réponse d'IA sans faire d'appel API (gratuit)
- * @param {string} text - Texte de l'utilisateur
- * @param {Object} company - Informations sur l'entreprise
- * @returns {string} - Réponse simulée
+ * Générer une conversation avec Hugging Face et convertir en audio avec gTTS
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
  */
-function simulateAIResponse(text, company) {
-  // Extraire des mots clés du texte de l'utilisateur
-  const lowerText = text.toLowerCase();
-  
-  // Réponses prédéfinies basées sur des mots clés
-  if (lowerText.includes('bonjour') || lowerText.includes('salut') || lowerText.includes('hello')) {
-    return `Bonjour ! Je suis l'assistant virtuel de ${company.name}. Comment puis-je vous aider aujourd'hui ?`;
+const generateConversation = async (req, res) => {
+  try {
+    const { text, voice, company } = req.body;
+
+    if (!text) {
+      return errorResponse(res, 400, 'Le texte est requis');
+    }
+
+    // Configurer la langue (par défaut français)
+    const language = voice?.language || process.env.TTS_DEFAULT_LANGUAGE || 'fr';
+    const speed = voice?.speed || process.env.TTS_DEFAULT_SPEED || 1.0;
+
+    // Générer une réponse avec Hugging Face
+    const result = await huggingfaceService.generateResponse(
+      text,
+      company || { name: 'Entreprise', description: 'Description non spécifiée' }
+    );
+
+    if (!result || !result.response) {
+      return errorResponse(res, 500, 'Impossible de générer une réponse');
+    }
+
+    // Générer un fichier audio avec gTTS
+    const fileName = `${uuidv4()}.mp3`;
+    const filePath = path.join(AUDIO_CACHE_DIR, fileName);
+    
+    // Utiliser gTTS pour générer l'audio
+    const ttsPromise = new Promise((resolve, reject) => {
+      gtts.save(filePath, result.response, (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(filePath);
+        }
+      });
+    });
+
+    await ttsPromise;
+    
+    // Construire l'URL de téléchargement
+    const downloadUrl = `/api/voices/download/${fileName}`;
+
+    // Répondre avec succès
+    return successResponse(res, 200, 'Conversation générée avec succès', {
+      originalText: text,
+      generatedText: result.response,
+      actions: result.actions || [],
+      audioUrl: downloadUrl,
+      fileName
+    });
+  } catch (error) {
+    logger.error('Erreur lors de la génération de conversation:', error);
+    return errorResponse(
+      res,
+      500,
+      'Erreur lors de la génération de la conversation',
+      error
+    );
   }
-  
-  if (lowerText.includes('tarif') || lowerText.includes('prix') || lowerText.includes('coût')) {
-    return `Chez ${company.name}, nous proposons plusieurs formules tarifaires adaptées à vos besoins. Nous avons un forfait de base à partir de 99€/mois, et des options plus avancées selon les fonctionnalités souhaitées. Je serais ravi de vous donner plus de détails sur une formule en particulier.`;
+};
+
+/**
+ * Télécharger un fichier audio généré
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
+const downloadAudio = (req, res) => {
+  try {
+    const fileName = req.params.fileName;
+    const filePath = path.join(AUDIO_CACHE_DIR, fileName);
+
+    // Vérifier si le fichier existe
+    if (!fsSync.existsSync(filePath)) {
+      return errorResponse(res, 404, 'Fichier audio non trouvé');
+    }
+
+    // Définir les headers pour le téléchargement
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
+
+    // Envoyer le fichier
+    const fileStream = fsSync.createReadStream(filePath);
+    fileStream.pipe(res);
+
+  } catch (error) {
+    logger.error('Erreur lors du téléchargement de l\'audio:', error);
+    return errorResponse(
+      res,
+      500,
+      'Erreur lors du téléchargement du fichier audio',
+      error
+    );
   }
-  
-  if (lowerText.includes('service') || lowerText.includes('offre') || lowerText.includes('proposition')) {
-    return `${company.name} propose une gamme complète de services vocaux, notamment la synthèse vocale, la reconnaissance vocale, et des solutions de centre d'appel automatisé. Nos services sont entièrement personnalisables selon les besoins spécifiques de votre entreprise.`;
+};
+
+/**
+ * Analyser le sentiment d'un texte
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
+const analyzeSentiment = async (req, res) => {
+  try {
+    const { text } = req.body;
+
+    if (!text) {
+      return errorResponse(res, 400, 'Le texte est requis');
+    }
+
+    const sentiment = await huggingfaceService.analyzeSentiment(text);
+    
+    return successResponse(res, 200, 'Analyse de sentiment effectuée', {
+      text,
+      sentiment
+    });
+  } catch (error) {
+    logger.error('Erreur lors de l\'analyse de sentiment:', error);
+    return errorResponse(
+      res,
+      500,
+      'Erreur lors de l\'analyse de sentiment',
+      error
+    );
   }
-  
-  if (lowerText.includes('contact') || lowerText.includes('joindre') || lowerText.includes('parler')) {
-    return `Vous pouvez contacter notre équipe commerciale au 01 23 45 67 89 ou par email à contact@${company.name.toLowerCase().replace(/\s/g, '')}.com. Nous sommes disponibles du lundi au vendredi de 9h à 18h.`;
-  }
-  
-  if (lowerText.includes('merci') || lowerText.includes('au revoir') || lowerText.includes('bye')) {
-    return `Je vous en prie ! Merci d'avoir contacté ${company.name}. N'hésitez pas à revenir vers nous si vous avez d'autres questions. Bonne journée !`;
-  }
-  
-  // Réponse par défaut si aucun mot clé n'est détecté
-  return `Merci pour votre message concernant "${text.substring(0, 30)}...". Chez ${company.name}, nous sommes dédiés à fournir des solutions vocales de haute qualité. Pour toute information spécifique, n'hésitez pas à préciser votre demande. Comment puis-je vous aider davantage ?`;
-}
+};
 
 module.exports = {
   getAvailableVoices: getAvailableVoicesController,
@@ -396,5 +485,8 @@ module.exports = {
   downloadAudio: downloadAudioController,
   configureCompanyVoice: configureCompanyVoiceController,
   generateCompanyAudio: generateCompanyAudioController,
-  testConversationWithVoice
+  testConversationWithVoice,
+  generateConversation,
+  downloadAudio,
+  analyzeSentiment
 }; 
