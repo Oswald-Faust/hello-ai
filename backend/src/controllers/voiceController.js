@@ -276,7 +276,7 @@ const generateCompanyAudioController = async (req, res) => {
  */
 const testConversationWithVoice = async (req, res) => {
   try {
-    const { text, voice, companyInfo } = req.body;
+    const { text, voice, companyInfo, useOpenAI = false } = req.body;
     
     if (!text) {
       return validationErrorResponse(res, 'Le texte à envoyer est requis');
@@ -295,13 +295,29 @@ const testConversationWithVoice = async (req, res) => {
       }
     };
     
-    logger.info(`Test de conversation avec OpenAI: "${text.substring(0, 50)}..."`);
+    logger.info(`Test de conversation ${useOpenAI ? 'avec OpenAI' : 'simulée'}: "${text.substring(0, 50)}..."`);
     
-    // Générer une réponse avec OpenAI
-    const aiResponseData = await openaiService.generateResponse(text, company);
-    const aiResponse = aiResponseData.response;
+    // Variable pour stocker la réponse AI
+    let aiResponse;
     
-    logger.info(`Réponse OpenAI obtenue: "${aiResponse.substring(0, 50)}..."`);
+    if (useOpenAI) {
+      // Utiliser OpenAI si explicitement demandé (attention aux coûts)
+      try {
+        const aiResponseData = await openaiService.generateResponse(text, company);
+        aiResponse = aiResponseData.response;
+        logger.info(`Réponse OpenAI obtenue: "${aiResponse.substring(0, 50)}..."`);
+      } catch (openaiError) {
+        logger.error('Erreur OpenAI:', openaiError);
+        
+        // Utiliser le mode simulation en cas d'erreur OpenAI
+        aiResponse = simulateAIResponse(text, company);
+        logger.info(`Utilisation de la réponse simulée suite à une erreur OpenAI: "${aiResponse.substring(0, 50)}..."`);
+      }
+    } else {
+      // Mode simulation (gratuit) - génère une réponse sans appel API
+      aiResponse = simulateAIResponse(text, company);
+      logger.info(`Réponse simulée générée: "${aiResponse.substring(0, 50)}..."`);
+    }
     
     // Valeurs par défaut pour les tests
     const voiceConfig = {
@@ -313,7 +329,7 @@ const testConversationWithVoice = async (req, res) => {
     };
     
     // Générer l'audio de la réponse
-    logger.info(`Génération audio pour la réponse OpenAI`);
+    logger.info(`Génération audio pour la réponse`);
     const audioFilePath = await voiceService.generateAudio(aiResponse, voiceConfig);
     
     // Calcul du nom de fichier pour l'URL
@@ -323,19 +339,55 @@ const testConversationWithVoice = async (req, res) => {
     return successResponse(res, 200, 'Conversation testée avec succès', { 
       input: text,
       response: aiResponse,
+      mode: useOpenAI ? 'openai' : 'simulation',
       audioFilePath,
       downloadUrl
     });
   } catch (error) {
-    logger.error('Erreur lors du test de conversation avec OpenAI:', error);
+    logger.error('Erreur lors du test de conversation:', error);
     
     if (error.message && error.message.includes('non configurée')) {
-      return errorResponse(res, 403, 'Clés API non configurées. Vérifiez votre configuration OpenAI ou gTTS.');
+      return errorResponse(res, 403, 'Clés API non configurées. Utilisez le mode simulation (useOpenAI=false).');
     }
     
     return errorResponse(res, 500, error.message || 'Erreur lors du test de conversation');
   }
 };
+
+/**
+ * Simule une réponse d'IA sans faire d'appel API (gratuit)
+ * @param {string} text - Texte de l'utilisateur
+ * @param {Object} company - Informations sur l'entreprise
+ * @returns {string} - Réponse simulée
+ */
+function simulateAIResponse(text, company) {
+  // Extraire des mots clés du texte de l'utilisateur
+  const lowerText = text.toLowerCase();
+  
+  // Réponses prédéfinies basées sur des mots clés
+  if (lowerText.includes('bonjour') || lowerText.includes('salut') || lowerText.includes('hello')) {
+    return `Bonjour ! Je suis l'assistant virtuel de ${company.name}. Comment puis-je vous aider aujourd'hui ?`;
+  }
+  
+  if (lowerText.includes('tarif') || lowerText.includes('prix') || lowerText.includes('coût')) {
+    return `Chez ${company.name}, nous proposons plusieurs formules tarifaires adaptées à vos besoins. Nous avons un forfait de base à partir de 99€/mois, et des options plus avancées selon les fonctionnalités souhaitées. Je serais ravi de vous donner plus de détails sur une formule en particulier.`;
+  }
+  
+  if (lowerText.includes('service') || lowerText.includes('offre') || lowerText.includes('proposition')) {
+    return `${company.name} propose une gamme complète de services vocaux, notamment la synthèse vocale, la reconnaissance vocale, et des solutions de centre d'appel automatisé. Nos services sont entièrement personnalisables selon les besoins spécifiques de votre entreprise.`;
+  }
+  
+  if (lowerText.includes('contact') || lowerText.includes('joindre') || lowerText.includes('parler')) {
+    return `Vous pouvez contacter notre équipe commerciale au 01 23 45 67 89 ou par email à contact@${company.name.toLowerCase().replace(/\s/g, '')}.com. Nous sommes disponibles du lundi au vendredi de 9h à 18h.`;
+  }
+  
+  if (lowerText.includes('merci') || lowerText.includes('au revoir') || lowerText.includes('bye')) {
+    return `Je vous en prie ! Merci d'avoir contacté ${company.name}. N'hésitez pas à revenir vers nous si vous avez d'autres questions. Bonne journée !`;
+  }
+  
+  // Réponse par défaut si aucun mot clé n'est détecté
+  return `Merci pour votre message concernant "${text.substring(0, 30)}...". Chez ${company.name}, nous sommes dédiés à fournir des solutions vocales de haute qualité. Pour toute information spécifique, n'hésitez pas à préciser votre demande. Comment puis-je vous aider davantage ?`;
+}
 
 module.exports = {
   getAvailableVoices: getAvailableVoicesController,
