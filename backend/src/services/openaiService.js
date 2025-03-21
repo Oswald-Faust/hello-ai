@@ -70,7 +70,7 @@ const buildSystemInstructions = (company) => {
         companyInfoSection += `\nQ: ${item.question}\nR: ${item.answer}`;
       });
 
-      
+
     }
     
     // Ajouter les informations sur l'équipe
@@ -170,7 +170,7 @@ const generateResponse = async (transcription, company, context = {}, scenarioNa
 
     // Appeler l'API OpenAI
     const completion = await openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4-turbo',
+      model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
       messages: messages,
       max_tokens: 500,
       temperature: 0.7,
@@ -210,7 +210,7 @@ const generateResponse = async (transcription, company, context = {}, scenarioNa
 const needsHumanTransfer = async (transcription, company = null) => {
   try {
     let systemPrompt = `Vous êtes un système d'analyse qui détermine si une demande client nécessite l'intervention d'un humain.
-                   Répondez uniquement par "true" si la demande nécessite clairement un humain, ou "false" si l'IA peut gérer.
+                   Répondez uniquement par "vrai" si la demande nécessite clairement un humain, ou "faux" si l'IA peut gérer.
                    Considérez comme nécessitant un humain: demandes explicites de parler à un conseiller, plaintes complexes,
                    problèmes techniques spécifiques, demandes de remboursement, ou situations émotionnellement chargées.`;
                    
@@ -220,7 +220,7 @@ const needsHumanTransfer = async (transcription, company = null) => {
     }
     
     const completion = await openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4-turbo',
+      model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
       messages: [
         {
           role: 'system',
@@ -255,7 +255,7 @@ const needsHumanTransfer = async (transcription, company = null) => {
 const analyzeSentiment = async (text) => {
   try {
     const completion = await openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4-turbo',
+      model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
       messages: [
         {
           role: 'system',
@@ -314,7 +314,7 @@ const detectIntent = async (text, company) => {
     }
     
     const completion = await openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4-turbo',
+      model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
       messages: [
         {
           role: 'system',
