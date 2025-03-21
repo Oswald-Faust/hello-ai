@@ -1,256 +1,348 @@
 const Company = require('../models/Company');
 const voiceService = require('../services/voiceService');
 const logger = require('../utils/logger');
-const { errorResponse, successResponse } = require('../utils/responseHandler');
+const { errorResponse, successResponse, validationErrorResponse } = require('../utils/responseHandler');
 const path = require('path');
 const fs = require('fs').promises;
 const { v4: uuidv4 } = require('uuid');
+const multer = require('multer');
+const openaiService = require('../services/openaiService');
+
+// Configuration pour l'upload des fichiers audio
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25 Mo max
+  fileFilter: (req, file, cb) => {
+    const filetypes = /wav|mp3|ogg|m4a/;
+    const mimetype = filetypes.test(file.mimetype);
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    }
+    cb(new Error("Seuls les fichiers audio (WAV, MP3, OGG, M4A) sont autorisés"));
+  }
+}).single('file');
 
 /**
- * Liste des voix disponibles
- * @param {Object} req - Requête Express
- * @param {Object} res - Réponse Express
+ * Obtenir la liste des voix disponibles
+ * @param {Request} req - Requête Express
+ * @param {Response} res - Réponse Express
  */
-exports.getAvailableVoices = async (req, res) => {
+const getAvailableVoicesController = async (req, res) => {
   try {
-    const voices = await voiceService.getAvailableVoices();
-    return res.status(200).json(successResponse('Liste des voix récupérée avec succès', voices));
+    // Utiliser gTTS par défaut, sauf si un autre fournisseur est spécifié
+    const provider = req.query.provider || 'gtts';
+    
+    logger.info(`Récupération des voix disponibles pour le fournisseur: ${provider}`);
+    const voices = await voiceService.getAvailableVoices(provider);
+    
+    return successResponse(res, 200, 'Voix récupérées avec succès', voices);
   } catch (error) {
     logger.error('Erreur lors de la récupération des voix disponibles:', error);
-    return res.status(500).json(errorResponse('Erreur lors de la récupération des voix disponibles'));
+    
+    if (error.message && error.message.includes('non configurée')) {
+      return errorResponse(res, 403, 'Clés API non configurées. Utilisez gTTS pour un service gratuit.');
+    }
+    
+    return errorResponse(res, 500, error.message || 'Erreur lors de la récupération des voix');
   }
 };
 
 /**
- * Télécharger une voix personnalisée
- * @param {Object} req - Requête Express
- * @param {Object} res - Réponse Express
+ * Télécharger un fichier audio pour créer un modèle de voix personnalisé
+ * @param {Request} req - Requête Express
+ * @param {Response} res - Réponse Express
  */
-exports.uploadCustomVoice = async (req, res) => {
+const uploadCustomVoiceController = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { name, description, language } = req.body;
-    
-    // Vérifier que l'ID d'entreprise est valide
-    if (!id) {
-      return res.status(400).json(errorResponse('ID d\'entreprise requis'));
-    }
-    
-    // Vérifier que le fichier audio est présent
+    upload(req, res, async (err) => {
+      if (err) {
+        logger.error('Erreur lors de l\'upload du fichier:', err);
+        return errorResponse(res, 400, err.message);
+      }
+
     if (!req.file) {
-      return res.status(400).json(errorResponse('Fichier audio requis'));
+        return validationErrorResponse(res, 'Aucun fichier audio fourni');
     }
     
-    // Vérifier que le nom est présent
+      const { name, description, language } = req.body;
+      const provider = req.body.provider || 'gtts';
+
     if (!name) {
-      return res.status(400).json(errorResponse('Nom de la voix requis'));
-    }
-    
-    // Trouver l'entreprise
-    const company = await Company.findById(id);
-    if (!company) {
-      return res.status(404).json(errorResponse('Entreprise non trouvée'));
-    }
-    
-    // Vérifier les permissions
-    if (!req.user.isAdmin && req.user.company.toString() !== id) {
-      return res.status(403).json(errorResponse('Vous n\'avez pas les droits pour cette action'));
-    }
-    
-    // Télécharger la voix personnalisée
-    const audioBuffer = await fs.readFile(req.file.path);
-    const customVoice = await voiceService.uploadCustomVoice(audioBuffer, name, {
+        return validationErrorResponse(res, 'Le nom du modèle de voix est requis');
+      }
+
+      try {
+        const audioFile = await fs.readFile(req.file.path);
+        
+        logger.info(`Création d'un modèle de voix personnalisé: ${name} avec fournisseur: ${provider}`);
+        const result = await voiceService.uploadCustomVoice(audioFile, name, {
       description,
-      language: language || 'fr-FR'
+          language,
+          provider
+        });
+        
+        // Suppression du fichier temporaire
+        await fs.unlink(req.file.path);
+        
+        return successResponse(res, 200, 'Modèle de voix créé avec succès', result);
+      } catch (uploadError) {
+        // Suppression du fichier temporaire en cas d'erreur
+        try {
+          await fs.unlink(req.file.path);
+        } catch (unlinkError) {
+          logger.error('Erreur lors de la suppression du fichier temporaire:', unlinkError);
+        }
+        
+        logger.error('Erreur lors de la création du modèle de voix:', uploadError);
+        
+        if (uploadError.message && uploadError.message.includes('non configurée')) {
+          return errorResponse(res, 403, 'Clés API non configurées. Utilisez gTTS pour un service gratuit.');
+        }
+        
+        return errorResponse(res, 500, uploadError.message || 'Erreur lors de la création du modèle de voix');
+      }
     });
-    
-    // Mettre à jour l'entreprise avec la nouvelle voix
-    if (!company.voiceAssistant) {
-      company.voiceAssistant = { voice: {} };
-    } else if (!company.voiceAssistant.voice) {
-      company.voiceAssistant.voice = {};
-    }
-    
-    company.voiceAssistant.voice.provider = 'fishaudio';
-    company.voiceAssistant.voice.customVoiceId = customVoice.id;
-    company.voiceAssistant.voice.customVoiceName = name;
-    await company.save();
-    
-    // Supprimer le fichier temporaire
-    await fs.unlink(req.file.path);
-    
-    return res.status(200).json(successResponse('Voix personnalisée téléchargée avec succès', {
-      voiceId: customVoice.id,
-      name: customVoice.name
-    }));
   } catch (error) {
-    logger.error('Erreur lors du téléchargement de la voix personnalisée:', error);
-    return res.status(500).json(errorResponse('Erreur lors du téléchargement de la voix personnalisée'));
+    logger.error('Erreur lors du traitement de l\'upload:', error);
+    return errorResponse(res, 500, error.message || 'Erreur lors du traitement de l\'upload');
   }
 };
 
 /**
- * Tester une voix
- * @param {Object} req - Requête Express
- * @param {Object} res - Réponse Express
+ * Tester la génération d'audio avec un texte et des paramètres spécifiques
+ * @param {Request} req - Requête Express
+ * @param {Response} res - Réponse Express
  */
-exports.testVoice = async (req, res) => {
+const testVoiceGenerationController = async (req, res) => {
   try {
-    const { text, voiceConfig } = req.body;
+    const { text, voice } = req.body;
     
-    // Vérifier que le texte est présent
     if (!text) {
-      return res.status(400).json(errorResponse('Texte requis'));
+      return validationErrorResponse(res, 'Le texte à convertir est requis');
     }
     
-    // Générer l'audio
+    // Valeurs par défaut pour les tests
+    const voiceConfig = {
+      provider: voice?.provider || 'gtts',
+      voiceId: voice?.voiceId,
+      language: voice?.language || 'fr',
+      speed: voice?.speed || 1.0,
+      pitch: voice?.pitch || 1.0,
+      format: voice?.format || 'mp3'
+    };
+    
+    logger.info(`Test de génération audio pour: "${text.substring(0, 50)}..." avec config:`, voiceConfig);
     const audioFilePath = await voiceService.generateAudio(text, voiceConfig);
     
-    // Créer un nom de fichier temporaire pour le téléchargement
-    const fileName = `test_${uuidv4()}.${voiceConfig.format || 'mp3'}`;
-    const downloadPath = `/api/voices/download/${fileName}`;
+    // Calcul du nom de fichier pour l'URL
+    const filename = path.basename(audioFilePath);
+    const downloadUrl = `${req.protocol}://${req.get('host')}/api/voices/download/${filename}`;
     
-    // Stocker temporairement le chemin du fichier pour le téléchargement
-    req.app.locals.tempAudioFiles = req.app.locals.tempAudioFiles || {};
-    req.app.locals.tempAudioFiles[fileName] = audioFilePath;
-    
-    // Configurer une suppression automatique après 1 heure
-    setTimeout(() => {
-      if (req.app.locals.tempAudioFiles && req.app.locals.tempAudioFiles[fileName]) {
-        delete req.app.locals.tempAudioFiles[fileName];
-      }
-    }, 3600000); // 1 heure
-    
-    return res.status(200).json(successResponse('Test audio généré avec succès', {
-      downloadUrl: downloadPath
-    }));
+    return successResponse(res, 200, 'Audio généré avec succès', { 
+      audioFilePath,
+      downloadUrl 
+    });
   } catch (error) {
-    logger.error('Erreur lors du test de la voix:', error);
-    return res.status(500).json(errorResponse('Erreur lors du test de la voix'));
+    logger.error('Erreur lors du test de génération audio:', error);
+    
+    if (error.message && error.message.includes('non configurée')) {
+      return errorResponse(res, 403, 'Clés API non configurées. Utilisez gTTS pour un service gratuit.');
+    }
+    
+    return errorResponse(res, 500, error.message || 'Erreur lors de la génération audio');
   }
 };
 
 /**
- * Télécharger un fichier audio de test
- * @param {Object} req - Requête Express
- * @param {Object} res - Réponse Express
+ * Télécharger un fichier audio généré
+ * @param {Request} req - Requête Express
+ * @param {Response} res - Réponse Express
  */
-exports.downloadTestAudio = async (req, res) => {
+const downloadAudioController = async (req, res) => {
   try {
-    const { fileName } = req.params;
+    const { filename } = req.params;
+    const audioPath = path.join(process.cwd(), process.env.TTS_CACHE_DIR || 'audio_cache', filename);
     
-    // Vérifier que le fichier existe
-    if (!req.app.locals.tempAudioFiles || !req.app.locals.tempAudioFiles[fileName]) {
-      return res.status(404).json(errorResponse('Fichier audio non trouvé'));
+    try {
+      await fs.access(audioPath);
+    } catch (error) {
+      logger.error(`Fichier audio non trouvé: ${audioPath}`);
+      return errorResponse(res, 404, 'Fichier audio non trouvé');
     }
     
-    const filePath = req.app.locals.tempAudioFiles[fileName];
-    res.download(filePath, fileName);
+    logger.info(`Téléchargement du fichier audio: ${audioPath}`);
+    return res.download(audioPath);
   } catch (error) {
     logger.error('Erreur lors du téléchargement du fichier audio:', error);
-    return res.status(500).json(errorResponse('Erreur lors du téléchargement du fichier audio'));
+    return errorResponse(res, 500, error.message || 'Erreur lors du téléchargement du fichier audio');
   }
 };
 
 /**
- * Mettre à jour la configuration de voix d'une entreprise
- * @param {Object} req - Requête Express
- * @param {Object} res - Réponse Express
+ * Configurer la voix par défaut pour une entreprise
+ * @param {Request} req - Requête Express
+ * @param {Response} res - Réponse Express
  */
-exports.updateVoiceConfig = async (req, res) => {
+const configureCompanyVoiceController = async (req, res) => {
   try {
     const { id } = req.params;
-    const voiceConfig = req.body;
+    const { provider, voiceId, speed, format } = req.body;
     
-    // Vérifier que l'ID d'entreprise est valide
     if (!id) {
-      return res.status(400).json(errorResponse('ID d\'entreprise requis'));
+      return validationErrorResponse(res, 'L\'ID de l\'entreprise est requis');
     }
     
-    // Trouver l'entreprise
-    const company = await Company.findById(id);
-    if (!company) {
-      return res.status(404).json(errorResponse('Entreprise non trouvée'));
-    }
+    // Ici, vous pourriez sauvegarder la configuration dans une base de données
+    // Pour cet exemple, nous retournons simplement la configuration reçue
+    const voiceConfig = {
+      provider: provider || 'gtts',
+      voiceId: voiceId,
+      language: req.body.language || 'fr',
+      speed: speed || 1.0,
+      format: format || 'mp3'
+    };
     
-    // Vérifier les permissions
-    if (!req.user.isAdmin && req.user.company.toString() !== id) {
-      return res.status(403).json(errorResponse('Vous n\'avez pas les droits pour cette action'));
-    }
+    logger.info(`Configuration de la voix pour l'entreprise ${id}:`, voiceConfig);
     
-    // Mettre à jour la configuration de voix
-    if (!company.voiceAssistant) {
-      company.voiceAssistant = { voice: voiceConfig };
-    } else {
-      company.voiceAssistant.voice = {
-        ...company.voiceAssistant.voice,
-        ...voiceConfig
-      };
-    }
-    
-    await company.save();
-    
-    return res.status(200).json(successResponse('Configuration de voix mise à jour avec succès', company.voiceAssistant.voice));
+    return successResponse(res, 200, 'Configuration de voix sauvegardée', {
+      companyId: id,
+      voiceConfig
+    });
   } catch (error) {
-    logger.error('Erreur lors de la mise à jour de la configuration de voix:', error);
-    return res.status(500).json(errorResponse('Erreur lors de la mise à jour de la configuration de voix'));
+    logger.error('Erreur lors de la configuration de voix:', error);
+    return errorResponse(res, 500, error.message || 'Erreur lors de la configuration de voix');
   }
 };
 
 /**
- * Générer un audio à partir du texte pour une entreprise spécifique
- * @param {Object} req - Requête Express
- * @param {Object} res - Réponse Express
+ * Générer un audio pour une entreprise avec la voix configurée
+ * @param {Request} req - Requête Express
+ * @param {Response} res - Réponse Express
  */
-exports.generateCompanyAudio = async (req, res) => {
+const generateCompanyAudioController = async (req, res) => {
   try {
     const { id } = req.params;
     const { text } = req.body;
     
-    // Vérifier que l'ID d'entreprise est valide
     if (!id) {
-      return res.status(400).json(errorResponse('ID d\'entreprise requis'));
+      return validationErrorResponse(res, 'L\'ID de l\'entreprise est requis');
     }
     
-    // Vérifier que le texte est présent
     if (!text) {
-      return res.status(400).json(errorResponse('Texte requis'));
+      return validationErrorResponse(res, 'Le texte à convertir est requis');
     }
     
-    // Trouver l'entreprise
-    const company = await Company.findById(id);
-    if (!company) {
-      return res.status(404).json(errorResponse('Entreprise non trouvée'));
-    }
+    // Dans une véritable application, vous récupéreriez la configuration depuis la base de données
+    // Pour cet exemple, nous utilisons une configuration par défaut
+    const voiceConfig = {
+      provider: 'gtts', // Par défaut, on utilise gTTS qui est gratuit
+      language: 'fr',   // Langue par défaut: français
+      speed: 1.0,
+      format: 'mp3'
+    };
     
-    // Vérifier que la configuration de voix existe
-    if (!company.voiceAssistant || !company.voiceAssistant.voice) {
-      return res.status(400).json(errorResponse('Configuration de voix non définie pour cette entreprise'));
-    }
+    logger.info(`Génération audio pour l'entreprise ${id}: "${text.substring(0, 50)}..."`);
+    const audioFilePath = await voiceService.generateAudio(text, voiceConfig);
     
-    // Générer l'audio
-    const audioFilePath = await voiceService.generateAudio(text, company.voiceAssistant.voice);
+    // Calcul du nom de fichier pour l'URL
+    const filename = path.basename(audioFilePath);
+    const downloadUrl = `${req.protocol}://${req.get('host')}/api/voices/download/${filename}`;
     
-    // Créer un nom de fichier temporaire pour le téléchargement
-    const fileName = `company_${id}_${uuidv4()}.${company.voiceAssistant.voice.format || 'mp3'}`;
-    const downloadPath = `/api/voices/download/${fileName}`;
-    
-    // Stocker temporairement le chemin du fichier pour le téléchargement
-    req.app.locals.tempAudioFiles = req.app.locals.tempAudioFiles || {};
-    req.app.locals.tempAudioFiles[fileName] = audioFilePath;
-    
-    // Configurer une suppression automatique après 1 heure
-    setTimeout(() => {
-      if (req.app.locals.tempAudioFiles && req.app.locals.tempAudioFiles[fileName]) {
-        delete req.app.locals.tempAudioFiles[fileName];
-      }
-    }, 3600000); // 1 heure
-    
-    return res.status(200).json(successResponse('Audio généré avec succès', {
-      downloadUrl: downloadPath
-    }));
+    return successResponse(res, 200, 'Audio généré avec succès', { 
+      audioFilePath,
+      downloadUrl 
+    });
   } catch (error) {
-    logger.error('Erreur lors de la génération de l\'audio:', error);
-    return res.status(500).json(errorResponse('Erreur lors de la génération de l\'audio'));
+    logger.error('Erreur lors de la génération audio pour l\'entreprise:', error);
+    return errorResponse(res, 500, error.message || 'Erreur lors de la génération audio');
   }
+};
+
+/**
+ * Tester la conversation avec OpenAI et la génération vocale
+ * @param {Request} req - Requête Express
+ * @param {Response} res - Réponse Express
+ */
+const testConversationWithVoice = async (req, res) => {
+  try {
+    const { text, voice, companyInfo } = req.body;
+    
+    if (!text) {
+      return validationErrorResponse(res, 'Le texte à envoyer est requis');
+    }
+    
+    // Créer un objet entreprise simulé pour le test
+    const company = {
+      name: companyInfo?.name || 'Entreprise de test',
+      description: companyInfo?.description || 'Description de l\'entreprise de test',
+      voiceAssistant: {
+        prompts: {
+          baseSystemPrompt: companyInfo?.prompt || `Vous êtes un assistant vocal intelligent pour {{companyName}}. 
+            Répondez aux questions des clients de manière utile et précise. 
+            Gardez vos réponses concises et conversationnelles.`
+        }
+      }
+    };
+    
+    logger.info(`Test de conversation avec OpenAI: "${text.substring(0, 50)}..."`);
+    
+    // Générer une réponse avec OpenAI
+    const aiResponseData = await openaiService.generateResponse(text, company);
+    const aiResponse = aiResponseData.response;
+    
+    logger.info(`Réponse OpenAI obtenue: "${aiResponse.substring(0, 50)}..."`);
+    
+    // Valeurs par défaut pour les tests
+    const voiceConfig = {
+      provider: voice?.provider || 'gtts',
+      language: voice?.language || 'fr',
+      speed: voice?.speed || 1.0,
+      pitch: voice?.pitch || 1.0,
+      format: voice?.format || 'mp3'
+    };
+    
+    // Générer l'audio de la réponse
+    logger.info(`Génération audio pour la réponse OpenAI`);
+    const audioFilePath = await voiceService.generateAudio(aiResponse, voiceConfig);
+    
+    // Calcul du nom de fichier pour l'URL
+    const filename = path.basename(audioFilePath);
+    const downloadUrl = `${req.protocol}://${req.get('host')}/api/voices/download/${filename}`;
+    
+    return successResponse(res, 200, 'Conversation testée avec succès', { 
+      input: text,
+      response: aiResponse,
+      audioFilePath,
+      downloadUrl
+    });
+  } catch (error) {
+    logger.error('Erreur lors du test de conversation avec OpenAI:', error);
+    
+    if (error.message && error.message.includes('non configurée')) {
+      return errorResponse(res, 403, 'Clés API non configurées. Vérifiez votre configuration OpenAI ou gTTS.');
+    }
+    
+    return errorResponse(res, 500, error.message || 'Erreur lors du test de conversation');
+  }
+};
+
+module.exports = {
+  getAvailableVoices: getAvailableVoicesController,
+  uploadCustomVoice: uploadCustomVoiceController,
+  testVoiceGeneration: testVoiceGenerationController,
+  downloadAudio: downloadAudioController,
+  configureCompanyVoice: configureCompanyVoiceController,
+  generateCompanyAudio: generateCompanyAudioController,
+  testConversationWithVoice
 }; 

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const voiceController = require('../controllers/voiceController');
-const { authenticate, authorize } = require('../middleware/authMiddleware');
+const { authenticate } = require('../middleware/authMiddleware');
 const multer = require('multer');
 const path = require('path');
 
@@ -32,45 +32,66 @@ const upload = multer({
 });
 
 /**
- * @route   GET /api/voices
- * @desc    Récupérer la liste des voix disponibles
- * @access  Private
+ * Routes pour les services de voix (TTS)
+ * Utilise gTTS (Google Text-to-Speech) comme solution principale (gratuit)
+ * Compatible avec les anciennes routes pour PlayHT et Fish Audio
  */
-router.get('/', authenticate, voiceController.getAvailableVoices);
 
 /**
- * @route   POST /api/voices/companies/:id/custom
+ * @route   GET /api/voices/available
+ * @desc    Récupérer la liste des voix disponibles (avec paramètre provider optionnel)
+ * @access  Private
+ */
+router.get('/available', authenticate, voiceController.getAvailableVoices);
+
+/**
+ * @route   POST /api/voices/upload/:id
  * @desc    Télécharger une voix personnalisée pour une entreprise
  * @access  Private
  */
-router.post('/companies/:id/custom', authenticate, upload.single('audio'), voiceController.uploadCustomVoice);
+router.post('/upload/:id', authenticate, upload.single('file'), voiceController.uploadCustomVoice);
 
 /**
  * @route   POST /api/voices/test
  * @desc    Tester une voix avec un texte
  * @access  Private
  */
-router.post('/test', authenticate, voiceController.testVoice);
+router.post('/test', authenticate, voiceController.testVoiceGeneration);
 
 /**
  * @route   GET /api/voices/download/:fileName
  * @desc    Télécharger un fichier audio de test
  * @access  Public (avec un token temporaire)
  */
-router.get('/download/:fileName', voiceController.downloadTestAudio);
+router.get('/download/:filename', voiceController.downloadAudio);
 
 /**
- * @route   PUT /api/voices/companies/:id/config
+ * @route   PUT /api/voices/config/:id
  * @desc    Mettre à jour la configuration de voix d'une entreprise
  * @access  Private
  */
-router.put('/companies/:id/config', authenticate, voiceController.updateVoiceConfig);
+router.put('/config/:id', authenticate, voiceController.configureCompanyVoice);
 
 /**
- * @route   POST /api/voices/companies/:id/generate
+ * @route   POST /api/voices/generate/:id
  * @desc    Générer un audio à partir du texte pour une entreprise
  * @access  Private
  */
+router.post('/generate/:id', authenticate, voiceController.generateCompanyAudio);
+
+// Route pour tester la conversation avec OpenAI et génération vocale
+router.post('/conversation', authenticate, voiceController.testConversationWithVoice);
+
+// === Routes pour la compatibilité avec l'ancien système ===
+
+// Anciennes routes de test (redirection vers les nouvelles routes)
+router.post('/test-voice', authenticate, voiceController.testVoiceGeneration);
+router.get('/download-test/:fileName', voiceController.downloadAudio);
+
+// Anciennes routes de configuration (redirection vers les nouvelles routes)
+router.put('/companies/:id/config', authenticate, voiceController.configureCompanyVoice);
+
+// Anciennes routes de génération (redirection vers les nouvelles routes)
 router.post('/companies/:id/generate', authenticate, voiceController.generateCompanyAudio);
 
 module.exports = router; 

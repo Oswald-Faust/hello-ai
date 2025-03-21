@@ -69,6 +69,8 @@ const buildSystemInstructions = (company) => {
       info.faq.forEach(item => {
         companyInfoSection += `\nQ: ${item.question}\nR: ${item.answer}`;
       });
+
+      
     }
     
     // Ajouter les informations sur l'équipe

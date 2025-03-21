@@ -103,13 +103,6 @@ const apiLimiter = rateLimit({
 // Appliquer le rate limiting à toutes les routes API
 app.use('/api', apiLimiter);
 
-// Routes
-app.use('/api/auth', require('./routes/authRoutes'));
-app.use('/api/users', require('./routes/userRoutes'));
-app.use('/api/companies', require('./routes/companyRoutes'));
-app.use('/api/calls', require('./routes/callRoutes'));
-app.use('/api/voices', require('./routes/voiceRoutes'));
-
 // Route de base pour vérifier que l'API fonctionne
 app.get('/api', (req, res) => {
   res.json({ message: 'Bienvenue sur l\'API Lydia!' });
