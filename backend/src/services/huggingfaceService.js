@@ -120,6 +120,39 @@ const formatMessagesForHuggingFace = (messages) => {
 };
 
 /**
+ * Nettoyer la réponse générée pour obtenir uniquement le contenu de la réponse
+ * @param {string} generatedText - Texte brut généré par le modèle
+ * @returns {string} - Réponse nettoyée
+ */
+const cleanGeneratedResponse = (generatedText) => {
+  // Si le texte est vide, renvoyer une chaîne vide
+  if (!generatedText) return '';
+  
+  // Supprimer tout préfixe comme "Assistant:" qui pourrait être dans la réponse
+  let cleanedText = generatedText.trim();
+  
+  // Supprimer "Assistant:" au début s'il existe
+  cleanedText = cleanedText.replace(/^Assistant\s*:\s*/i, '');
+  
+  // Garder uniquement la première réponse (avant tout nouveau "Utilisateur:")
+  const userPattern = /\n\s*utilisateur\s*:/i;
+  if (userPattern.test(cleanedText)) {
+    cleanedText = cleanedText.split(userPattern)[0].trim();
+  }
+  
+  // Supprimer les balises d'action s'il y en a
+  cleanedText = cleanedText.replace(/\[ACTION:[^\]]+\]/g, '');
+  
+  // Supprimer les préfixes de dialogue potentiels
+  cleanedText = cleanedText.replace(/^(- )?(utilisateur|assistant)\s*:\s*/gi, '');
+  
+  // Nettoyer les sauts de ligne multiples
+  cleanedText = cleanedText.replace(/\n{3,}/g, '\n\n');
+  
+  return cleanedText.trim();
+};
+
+/**
  * Mode de secours - génère une réponse sans API
  * @param {string} text - Texte de l'utilisateur
  * @param {Object} company - Informations sur l'entreprise
@@ -206,26 +239,45 @@ const generateResponse = async (transcription, company, context = {}, scenarioNa
     // Formater pour Hugging Face
     const formattedPrompt = formatMessagesForHuggingFace(messages);
     
+    // Ajout d'instructions pour obtenir une réponse directe
+    let enhancedPrompt = formattedPrompt;
+
+    // Si c'est le premier message (pas d'historique), on demande une réponse plus concise et directe
+    if (!context.history || context.history.length === 0) {
+      enhancedPrompt += ' Répondez directement à la question de manière concise, en une seule réponse. Ne simulez pas un dialogue. Ne posez pas de questions à l\'utilisateur.';
+    } else {
+      // S'il y a un historique, c'est une conversation en cours, on peut être plus naturel
+      enhancedPrompt += ' Continuez cette conversation de manière cohérente avec l\'historique. Soyez conversationnel mais concis.';
+    }
+
     // Appeler l'API Hugging Face
     logger.info(`Envoi de la requête à Hugging Face avec le modèle: ${process.env.HUGGINGFACE_MODEL || DEFAULT_MODEL}`);
     
+    // Ajuster les paramètres en fonction du contexte
+    let maxTokens = 150;
+    if (context.history && context.history.length > 0) {
+      maxTokens = 200; // Réponses plus longues si conversation
+    }
+
     const response = await hf.textGeneration({
       model: process.env.HUGGINGFACE_MODEL || DEFAULT_MODEL,
-      inputs: formattedPrompt,
+      inputs: enhancedPrompt,
       parameters: {
-        max_new_tokens: 500,
-        temperature: 0.7,
-        top_p: 0.95,
+        max_new_tokens: maxTokens,
+        temperature: 0.5,
+        top_p: 0.9,
         do_sample: true,
         return_full_text: false
       }
     });
 
-    const responseContent = response.generated_text.trim();
-    logger.info(`Réponse générée pour ${company.name}: ${responseContent.substring(0, 100)}...`);
+    // Nettoyer la réponse pour obtenir uniquement le contenu pertinent
+    const responseText = cleanGeneratedResponse(response.generated_text);
+    
+    logger.info(`Réponse générée pour ${company.name}: ${responseText.substring(0, 100)}...`);
     
     // Détecter les actions dans la réponse (si présentes)
-    const actionMatches = responseContent.match(/\[ACTION:([^\]]+)\]/g);
+    const actionMatches = responseText.match(/\[ACTION:([^\]]+)\]/g);
     const detectedActions = [];
     
     if (actionMatches) {
@@ -236,7 +288,7 @@ const generateResponse = async (transcription, company, context = {}, scenarioNa
     }
     
     // Nettoyer la réponse en enlevant les tags d'action
-    const cleanResponse = responseContent.replace(/\[ACTION:[^\]]+\]/g, '').trim();
+    const cleanResponse = responseText.replace(/\[ACTION:[^\]]+\]/g, '').trim();
     
     return {
       response: cleanResponse,

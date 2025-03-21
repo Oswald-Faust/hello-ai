@@ -415,6 +415,92 @@ const generateConversation = async (req, res) => {
 };
 
 /**
+ * Générer une conversation avec historique
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
+const generateConversationWithHistory = async (req, res) => {
+  try {
+    const { text, voice, company, conversationId, history } = req.body;
+
+    if (!text) {
+      return errorResponse(res, 400, 'Le texte est requis');
+    }
+
+    // Configurer la langue (par défaut français)
+    const language = voice?.language || process.env.TTS_DEFAULT_LANGUAGE || 'fr';
+    const speed = voice?.speed || process.env.TTS_DEFAULT_SPEED || 1.0;
+
+    // Préparer le contexte avec l'historique si disponible
+    let context = {};
+    if (history && Array.isArray(history)) {
+      context.history = history.map(msg => ({
+        role: msg.role || (msg.isUser ? 'user' : 'assistant'),
+        content: msg.content || msg.text
+      }));
+    }
+
+    // Générer une réponse avec Hugging Face
+    const result = await huggingfaceService.generateResponse(
+      text,
+      company || { name: 'Entreprise', description: 'Description non spécifiée' },
+      context
+    );
+
+    if (!result || !result.response) {
+      return errorResponse(res, 500, 'Impossible de générer une réponse');
+    }
+
+    // Générer un fichier audio avec gTTS
+    const fileName = `${uuidv4()}.mp3`;
+    const filePath = path.join(AUDIO_CACHE_DIR, fileName);
+    
+    // Utiliser gTTS pour générer l'audio
+    const ttsPromise = new Promise((resolve, reject) => {
+      gtts.save(filePath, result.response, (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(filePath);
+        }
+      });
+    });
+
+    await ttsPromise;
+    
+    // Construire l'URL de téléchargement
+    const downloadUrl = `/api/voices/download/${fileName}`;
+
+    // Ajouter la nouvelle paire question/réponse à l'historique
+    const updatedHistory = context.history || [];
+    updatedHistory.push({ role: 'user', content: text });
+    updatedHistory.push({ role: 'assistant', content: result.response });
+
+    // Limiter l'historique aux 10 derniers messages pour éviter qu'il ne devienne trop grand
+    const limitedHistory = updatedHistory.slice(-10);
+
+    // Répondre avec succès
+    return successResponse(res, 200, 'Conversation générée avec succès', {
+      originalText: text,
+      generatedText: result.response,
+      actions: result.actions || [],
+      audioUrl: downloadUrl,
+      fileName,
+      conversationId: conversationId || uuidv4(), // Générer un nouvel ID si aucun n'est fourni
+      history: limitedHistory
+    });
+  } catch (error) {
+    logger.error('Erreur lors de la génération de conversation avec historique:', error);
+    return errorResponse(
+      res,
+      500,
+      'Erreur lors de la génération de la conversation',
+      error
+    );
+  }
+};
+
+/**
  * Télécharger un fichier audio généré
  * @param {Object} req - Requête Express
  * @param {Object} res - Réponse Express
@@ -487,6 +573,7 @@ module.exports = {
   generateCompanyAudio: generateCompanyAudioController,
   testConversationWithVoice,
   generateConversation,
+  generateConversationWithHistory,
   downloadAudio,
   analyzeSentiment
 }; 

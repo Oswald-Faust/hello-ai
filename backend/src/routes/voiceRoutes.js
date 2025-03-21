@@ -84,6 +84,7 @@ router.post('/conversation', authenticate, voiceController.testConversationWithV
 
 // Routes pour Hugging Face et gTTS (alternatives gratuites)
 router.post('/hf-conversation', authenticate, voiceController.generateConversation);
+router.post('/hf-conversation-with-history', authenticate, voiceController.generateConversationWithHistory);
 router.get('/download/:fileName', voiceController.downloadAudio);
 router.post('/sentiment', authenticate, voiceController.analyzeSentiment);
 
