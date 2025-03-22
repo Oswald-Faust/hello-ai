@@ -1,302 +1,112 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import api from '@/services/api';
-import axios, { AxiosResponse } from 'axios';
 
+// Interface utilisateur simplifiée
 interface User {
   id: string;
   firstName: string;
   lastName: string;
   email: string;
-  companyId?: string;
-  role?: string;
+  role: string;
 }
 
 export type AuthContextType = {
   user: User | null;
   error: string | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (userData: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    password: string;
-    companyId?: string;
-    companyName?: string;
-  }) => Promise<void>;
-  logout: () => Promise<void>;
-  updateProfile: (userData: Partial<User>) => Promise<void>;
+  login: (email: string, password: string) => Promise<string>;
+  logout: () => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Identifiants admin fixes
+const ADMIN_EMAIL = 'admin@lydia.com';
+const ADMIN_PASSWORD = 'Admin123!';
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  // Fonction pour récupérer l'utilisateur actuel
-  const fetchCurrentUser = async () => {
-    try {
-      console.log('[AUTH HOOK] Récupération des informations utilisateur...');
-      const response = await api.get('/auth/me');
-      const userData = response.data.user;
-      console.log('[AUTH HOOK] Informations utilisateur récupérées:', userData);
-      
-      // Mettre à jour le localStorage avec les données les plus récentes
-      localStorage.setItem('user', JSON.stringify(userData));
-      
-      setUser(userData);
-      return userData;
-    } catch (err) {
-      console.error('[AUTH HOOK] Erreur lors de la récupération des informations utilisateur:', err);
-      // Si l'erreur est due à un token invalide, on nettoie le localStorage
-      // Note: Ne pas supprimer le refreshToken ici, car l'intercepteur API peut l'utiliser
-      setUser(null);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const initAuth = async () => {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      const refreshToken = localStorage.getItem('refreshToken');
-      const storedUser = localStorage.getItem('user');
-      
-      // Si un token existe, on essaie d'initialiser l'utilisateur
-      if (token) {
-        console.log('[AUTH HOOK] Token trouvé, tentative de récupération de la session');
-        
-        // Si on a les données utilisateur en cache, on les utilise d'abord
-        if (storedUser) {
-          try {
-            const parsedUser = JSON.parse(storedUser);
-            setUser(parsedUser);
-            console.log('[AUTH HOOK] Utilisateur initialisé depuis le localStorage');
-          } catch (e) {
-            console.error('[AUTH HOOK] Erreur lors du parsing des données utilisateur:', e);
-          }
-        }
-        
-        // Puis on vérifie avec le serveur pour obtenir les dernières données
-        await fetchCurrentUser();
-      } 
-      // Si seulement un refreshToken existe, on peut essayer de récupérer un nouveau token
-      else if (refreshToken) {
-        console.log('[AUTH HOOK] Refresh token trouvé, tentative de récupération d\'un nouveau token');
-        try {
-          const response = await api.post('/auth/refresh-token', { refreshToken });
-          
-          if (response.data && response.data.token) {
-            localStorage.setItem('token', response.data.token);
-            if (response.data.refreshToken) {
-              localStorage.setItem('refreshToken', response.data.refreshToken);
-            }
-            
-            // Récupérer les données utilisateur avec le nouveau token
-            await fetchCurrentUser();
-          } else {
-            console.log('[AUTH HOOK] Échec de rafraîchissement du token');
-            setLoading(false);
-          }
-        } catch (err) {
-          console.error('[AUTH HOOK] Erreur lors du rafraîchissement du token:', err);
-          // En cas d'échec, nous nettoyons le refresh token
-          localStorage.removeItem('refreshToken');
-          setLoading(false);
-        }
-      } else {
-        console.log('[AUTH HOOK] Aucun token trouvé, utilisateur non authentifié');
-        setLoading(false);
+    // Vérifier si l'utilisateur est déjà connecté
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+        console.log('[AUTH HOOK] Utilisateur initialisé depuis le localStorage');
+      } catch (e) {
+        console.error('[AUTH HOOK] Erreur lors du parsing des données utilisateur:', e);
+        localStorage.removeItem('user');
       }
-    };
-
-    initAuth();
+    }
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<string> => {
     try {
       setError(null);
       setLoading(true);
       console.log('[AUTH HOOK] Tentative de connexion pour:', email);
       
-      const response = await api.post('/auth/login', { email, password });
-      
-      const { token, refreshToken, user } = response.data;
-      
-      if (!token) {
-        throw new Error('Aucun token reçu du serveur');
-      }
-      
-      // Stocker les informations d'authentification
-      localStorage.setItem('token', token);
-      if (refreshToken) {
-        localStorage.setItem('refreshToken', refreshToken);
-      }
-      localStorage.setItem('user', JSON.stringify(user));
-      
-      console.log('[AUTH HOOK] Connexion réussie pour:', email);
-      console.log('[AUTH HOOK] Rôle utilisateur:', user.role);
-      
-      // Mettre à jour l'état de l'utilisateur
-      setUser(user);
-      setLoading(false);
-      
-      // Récupérer l'URL de redirection stockée dans les cookies
-      const getCookie = (name: string) => {
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) return parts.pop()?.split(';').shift();
-        return null;
-      };
-      
-      // Déterminer la redirection
-      const redirectUrl = getCookie('redirectUrl');
-      
-      // Si on a une URL de redirection et qu'elle correspond à notre rôle
-      if (redirectUrl) {
-        // Supprimer le cookie de redirection
-        document.cookie = 'redirectUrl=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+      // Vérification simple des identifiants admin
+      if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+        const adminUser: User = {
+          id: '1',
+          firstName: 'Admin',
+          lastName: 'User',
+          email: ADMIN_EMAIL,
+          role: 'admin'
+        };
         
-        // Vérifier si c'est une route admin et si l'utilisateur est admin
-        if (redirectUrl.startsWith('/dashboard/admin') && user.role !== 'admin') {
-          console.log('[AUTH HOOK] Tentative d\'accès admin refusée, redirection vers dashboard utilisateur');
-          window.location.replace('/dashboard');
-        } else {
-          console.log('[AUTH HOOK] Redirection vers:', redirectUrl);
-          window.location.replace(redirectUrl);
-        }
+        // Stocker l'utilisateur dans le localStorage
+        localStorage.setItem('user', JSON.stringify(adminUser));
+        
+        console.log('[AUTH HOOK] Connexion admin réussie');
+        setUser(adminUser);
+        return 'admin';
       } else {
-        // Pas d'URL de redirection, rediriger vers le dashboard approprié
-        if (user.role === 'admin') {
-          console.log('[AUTH HOOK] Redirection vers le dashboard admin');
-          window.location.replace('/dashboard/admin');
-        } else {
-          console.log('[AUTH HOOK] Redirection vers le dashboard utilisateur');
-          window.location.replace('/dashboard');
-        }
+        throw new Error('Email ou mot de passe incorrect');
       }
     } catch (err: any) {
       console.error('[AUTH HOOK] Erreur lors de la connexion:', err);
-      const errorMessage = err.response?.data?.message || 'Erreur lors de la connexion';
+      const errorMessage = err.message || 'Erreur lors de la connexion';
       setError(errorMessage);
-      setLoading(false);
       throw new Error(errorMessage);
-    }
-  };
-
-  const register = async (userData: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    password: string;
-    companyId?: string;
-    companyName?: string;
-  }) => {
-    try {
-      console.log('[AUTH HOOK] Début de l\'inscription avec les données:', { 
-        ...userData, 
-        password: userData.password ? '********' : undefined 
-      });
-      
-      setError(null);
-      setLoading(true);
-      
-      const response = await api.post('/auth/register', userData);
-      console.log('[AUTH HOOK] Réponse reçue:', response.status, response.statusText);
-      console.log('[AUTH HOOK] Données de réponse:', response.data);
-      
-      const { token, refreshToken, user } = response.data;
-      
-      if (!token || !user) {
-        throw new Error('Données de réponse incomplètes');
-      }
-      
-      localStorage.setItem('token', token);
-      if (refreshToken) {
-        localStorage.setItem('refreshToken', refreshToken);
-      }
-      localStorage.setItem('user', JSON.stringify(user));
-      console.log('[AUTH HOOK] Utilisateur enregistré en local storage');
-      
-      setUser(user);
-      console.log('[AUTH HOOK] État utilisateur mis à jour');
-    } catch (err: any) {
-      console.error('[AUTH HOOK] Erreur lors de l\'inscription:', err);
-      console.error('[AUTH HOOK] Détails de l\'erreur:', {
-        status: err.response?.status,
-        statusText: err.response?.statusText,
-        data: err.response?.data,
-        message: err.message
-      });
-      setError(err.response?.data?.message || 'Erreur lors de l\'inscription');
-      throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  const logout = async () => {
-    try {
-      setLoading(true);
-      console.log('[AUTH HOOK] Tentative de déconnexion...');
-      await api.post('/auth/logout');
-      console.log('[AUTH HOOK] Déconnexion réussie côté serveur');
-    } catch (err) {
-      console.error('[AUTH HOOK] Erreur lors de la déconnexion:', err);
-    } finally {
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
-      setUser(null);
-      setLoading(false);
-      console.log('[AUTH HOOK] Session locale nettoyée');
-    }
+  const logout = () => {
+    localStorage.removeItem('user');
+    setUser(null);
+    console.log('[AUTH HOOK] Déconnexion réussie');
+    window.location.replace('/login');
   };
 
-  const updateProfile = async (data: Partial<User>) => {
-    try {
-      setError(null);
-      setLoading(true);
-      console.log('[AUTH HOOK] Mise à jour du profil avec les données:', data);
-      
-      const response = await api.put('/auth/profile', data);
-      const updatedUser = response.data.user;
-      
-      // Mettre à jour le localStorage
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      
-      setUser(updatedUser);
-      console.log('[AUTH HOOK] Profil mis à jour avec succès');
-    } catch (err: any) {
-      console.error('[AUTH HOOK] Erreur lors de la mise à jour du profil:', err);
-      setError(err.response?.data?.message || 'Erreur lors de la mise à jour du profil');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const value = {
-    user,
-    error,
-    loading,
-    login,
-    register,
-    logout,
-    updateProfile
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        error,
+        loading,
+        login,
+        logout
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error('useAuth doit être utilisé à l\'intérieur d\'un AuthProvider');
   }
   return context;
-} 
+}
+
+// Ajouter un export par défaut pour compatibilité
+export default useAuth; 

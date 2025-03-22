@@ -13,27 +13,17 @@ const Login: NextPage = () => {
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [initializing, setInitializing] = useState(true);
   
   const router = useRouter();
-  const { login, user, loading } = useAuth();
+  const { login, user } = useAuth();
 
   // Rediriger si l'utilisateur est déjà connecté
   useEffect(() => {
-    if (user && !loading && initializing) {
-      console.log('[LOGIN] Utilisateur déjà connecté, vérification du rôle');
-      
-      if (user.role === 'admin' || user.role === 'superadmin') {
-        console.log('[LOGIN] Utilisateur admin, redirection vers le dashboard admin');
-        router.push('/dashboard/admin');
-      } else {
-        console.log('[LOGIN] Utilisateur standard, redirection vers le dashboard');
-        router.push('/dashboard');
-      }
-    } else if (!loading) {
-      setInitializing(false);
+    if (user) {
+      console.log('[LOGIN] Utilisateur déjà connecté, redirection vers le dashboard admin');
+      router.push('/dashboard/admin');
     }
-  }, [user, loading, router, initializing]);
+  }, [user, router]);
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
@@ -64,36 +54,22 @@ const Login: NextPage = () => {
     
     try {
       console.log('[LOGIN] Tentative de connexion avec:', email);
+      // Utiliser le hook d'authentification simplifié
       const userRole = await login(email, password);
       console.log('[LOGIN] Connexion réussie, rôle détecté:', userRole);
       
-      // Redirection en fonction du rôle
-      if (userRole === 'admin' || userRole === 'superadmin') {
-        console.log('[LOGIN] Redirection vers le dashboard admin');
-        router.push('/dashboard/admin');
-      } else {
-        console.log('[LOGIN] Redirection vers le dashboard standard');
-        router.push('/dashboard');
-      }
+      // L'admin est automatiquement redirigé vers le dashboard admin
+      router.push('/dashboard/admin');
     } catch (err: any) {
       console.error('[LOGIN] Erreur de connexion:', err);
       setErrors({
         ...errors,
-        general: err.response?.data?.message || 'Une erreur est survenue lors de la connexion'
+        general: err.message || 'Email ou mot de passe incorrect'
       });
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  // Afficher un loader pendant l'initialisation
-  if (loading && initializing) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="w-12 h-12 border-4 border-t-primary-600 border-gray-200 rounded-full animate-spin"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -106,11 +82,14 @@ const Login: NextPage = () => {
             </Link>
             <h2 className="mt-6 text-3xl font-extrabold text-gray-900">Connexion</h2>
             <p className="mt-2 text-sm text-gray-600">
-              Ou{' '}
-              <Link href="/register" className="font-medium text-primary-600 hover:text-primary-500">
-                créez un compte
-              </Link>
+              Utilisez les identifiants admin pour accéder au dashboard
             </p>
+            {/* Information de débogage */}
+            <div className="mt-2 p-2 bg-yellow-100 text-yellow-800 rounded-md text-sm">
+              <strong>Identifiants Admin :</strong><br />
+              Email: admin@lydia.com<br />
+              Mot de passe: Admin123!
+            </div>
           </div>
 
           <div className="mt-8">
@@ -162,26 +141,6 @@ const Login: NextPage = () => {
                       leftIcon={<Lock className="w-5 h-5" />}
                       placeholder="••••••••"
                     />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <input
-                      id="remember-me"
-                      name="remember-me"
-                      type="checkbox"
-                      className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-                    />
-                    <label htmlFor="remember-me" className="block ml-2 text-sm text-gray-900">
-                      Se souvenir de moi
-                    </label>
-                  </div>
-
-                  <div className="text-sm">
-                    <Link href="/forgot-password" className="font-medium text-primary-600 hover:text-primary-500">
-                      Mot de passe oublié?
-                    </Link>
                   </div>
                 </div>
 

@@ -1,0 +1,1 @@
+{"level":"error","message":"Erreur lors de la création de l'administrateur: Operation `users.findOne()` buffering timed out after 10000ms","service":"lydia-backend","timestamp":"2025-03-22 12:15:51"}
