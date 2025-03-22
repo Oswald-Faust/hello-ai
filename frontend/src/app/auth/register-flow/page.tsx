@@ -72,13 +72,30 @@ export default function RegisterFlowPage() {
       if (userType === 'company') {
         // En réalité, il faudrait d'abord créer l'entreprise, puis utiliser son ID
         // pour l'inscription de l'utilisateur. Pour l'instant, on simplifie
-        await register(firstName, lastName, email, password, 'company_id_placeholder');
+        await register({
+          firstName,
+          lastName,
+          email,
+          password,
+          companyId: 'company_id_placeholder'
+        });
       } else if (userType === 'employee' && companyId) {
         // Pour les employés, on utilise l'ID de l'entreprise fourni
-        await register(firstName, lastName, email, password, companyId);
+        await register({
+          firstName,
+          lastName,
+          email,
+          password,
+          companyId
+        });
       } else {
         // Pour les freelances, pas d'entreprise associée
-        await register(firstName, lastName, email, password);
+        await register({
+          firstName,
+          lastName,
+          email,
+          password
+        });
       }
       // Redirection est gérée par le premier useEffect
     } catch (err) {
@@ -175,11 +192,10 @@ export default function RegisterFlowPage() {
         <button
           type="button"
           onClick={() => setUserType('freelance')}
-          className={`p-4 border rounded-lg flex items-center transition-colors ${
-            userType === 'freelance' 
-              ? 'border-primary bg-primary bg-opacity-10 text-primary' 
-              : 'border-gray-200 hover:border-primary hover:bg-primary hover:bg-opacity-5'
-          }`}
+          className={userType === 'freelance' 
+            ? 'p-4 border rounded-lg flex items-center transition-colors border-primary bg-primary bg-opacity-10 text-black' 
+            : 'p-4 border rounded-lg flex items-center transition-colors border-gray-200 hover:border-primary hover:bg-primary hover:bg-opacity-5 text-black'
+          }
         >
           <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mr-4">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -187,7 +203,7 @@ export default function RegisterFlowPage() {
             </svg>
           </div>
           <div className="text-left">
-            <h3 className="font-semibold">Freelance / Indépendant</h3>
+            <h3 className="font-semibold text-black">Freelance / Indépendant</h3>
             <p className="text-sm text-gray-500">Vous travaillez seul et gérez vos propres clients</p>
           </div>
         </button>
@@ -195,11 +211,10 @@ export default function RegisterFlowPage() {
         <button
           type="button"
           onClick={() => setUserType('company')}
-          className={`p-4 border rounded-lg flex items-center transition-colors ${
-            userType === 'company' 
-              ? 'border-primary bg-primary bg-opacity-10 text-primary' 
-              : 'border-gray-200 hover:border-primary hover:bg-primary hover:bg-opacity-5'
-          }`}
+          className={userType === 'company' 
+            ? 'p-4 border rounded-lg flex items-center transition-colors border-primary bg-primary bg-opacity-10 text-black' 
+            : 'p-4 border rounded-lg flex items-center transition-colors border-gray-200 hover:border-primary hover:bg-primary hover:bg-opacity-5 text-black'
+          }
         >
           <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center mr-4">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -207,7 +222,7 @@ export default function RegisterFlowPage() {
             </svg>
           </div>
           <div className="text-left">
-            <h3 className="font-semibold">Entreprise</h3>
+            <h3 className="font-semibold text-black">Entreprise</h3>
             <p className="text-sm text-gray-500">Vous représentez une société avec des employés</p>
           </div>
         </button>
@@ -215,11 +230,10 @@ export default function RegisterFlowPage() {
         <button
           type="button"
           onClick={() => setUserType('employee')}
-          className={`p-4 border rounded-lg flex items-center transition-colors ${
-            userType === 'employee' 
-              ? 'border-primary bg-primary bg-opacity-10 text-primary' 
-              : 'border-gray-200 hover:border-primary hover:bg-primary hover:bg-opacity-5'
-          }`}
+          className={userType === 'employee' 
+            ? 'p-4 border rounded-lg flex items-center transition-colors border-primary bg-primary bg-opacity-10 text-black' 
+            : 'p-4 border rounded-lg flex items-center transition-colors border-gray-200 hover:border-primary hover:bg-primary hover:bg-opacity-5 text-black'
+          }
         >
           <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mr-4">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -227,7 +241,7 @@ export default function RegisterFlowPage() {
             </svg>
           </div>
           <div className="text-left">
-            <h3 className="font-semibold">Employé</h3>
+            <h3 className="font-semibold text-black">Employé</h3>
             <p className="text-sm text-gray-500">Vous rejoignez une entreprise existante</p>
           </div>
         </button>
@@ -460,7 +474,7 @@ export default function RegisterFlowPage() {
             required
             className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary"
           />
-          <label htmlFor="terms" className="text-sm text-gray-600">
+          <label htmlFor="terms" className="text-sm text-black">
             J'accepte les <Link href="/terms" className="text-primary hover:underline">conditions d'utilisation</Link> et la <Link href="/privacy" className="text-primary hover:underline">politique de confidentialité</Link>
           </label>
         </div>
@@ -476,7 +490,7 @@ export default function RegisterFlowPage() {
       <div className="bg-gray-50 p-4 rounded-lg space-y-4">
         <div>
           <h3 className="font-semibold text-gray-700">Type de compte</h3>
-          <p className="text-gray-600">
+          <p className="text-black">
             {userType === 'freelance' ? 'Freelance / Indépendant' : 
              userType === 'company' ? 'Entreprise' : 
              'Employé'}
@@ -486,35 +500,35 @@ export default function RegisterFlowPage() {
         {userType === 'company' && (
           <div>
             <h3 className="font-semibold text-gray-700">Informations de l'entreprise</h3>
-            <p className="text-gray-600">{companyName}</p>
-            <p className="text-gray-600">Secteur : {industry}</p>
-            {companySize && <p className="text-gray-600">Taille : {companySize}</p>}
-            {companyEmail && <p className="text-gray-600">Email : {companyEmail}</p>}
-            {companyPhone && <p className="text-gray-600">Téléphone : {companyPhone}</p>}
+            <p className="text-black">{companyName}</p>
+            <p className="text-black">Secteur : {industry}</p>
+            {companySize && <p className="text-black">Taille : {companySize}</p>}
+            {companyEmail && <p className="text-black">Email : {companyEmail}</p>}
+            {companyPhone && <p className="text-black">Téléphone : {companyPhone}</p>}
           </div>
         )}
 
         {userType === 'employee' && (
           <div>
             <h3 className="font-semibold text-gray-700">Entreprise</h3>
-            <p className="text-gray-600">ID de l'entreprise : {companyId}</p>
+            <p className="text-black">ID de l'entreprise : {companyId}</p>
           </div>
         )}
         
         <div>
           <h3 className="font-semibold text-gray-700">Informations personnelles</h3>
-          <p className="text-gray-600">{firstName} {lastName}</p>
-          {jobTitle && <p className="text-gray-600">Poste : {jobTitle}</p>}
+          <p className="text-black">{firstName} {lastName}</p>
+          {jobTitle && <p className="text-black">Poste : {jobTitle}</p>}
         </div>
         
         <div>
           <h3 className="font-semibold text-gray-700">Contact</h3>
-          <p className="text-gray-600">{email}</p>
+          <p className="text-black">{email}</p>
         </div>
       </div>
       
       <div className="text-center">
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-black">
           En cliquant sur "Créer mon compte", vous acceptez nos conditions d'utilisation et notre politique de confidentialité.
         </p>
       </div>
@@ -544,7 +558,7 @@ export default function RegisterFlowPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Créer un compte</h1>
-          <p className="text-gray-600 mt-2">Rejoignez Lydia pour optimiser vos communications</p>
+          <p className="text-black mt-2">Rejoignez Lydia pour optimiser vos communications</p>
         </div>
         
         <Card className="p-8 bg-white shadow-xl rounded-xl border-0">
@@ -577,7 +591,7 @@ export default function RegisterFlowPage() {
                   type="button"
                   variant="outline"
                   onClick={goToPreviousStep}
-                  className="px-4"
+                  className="px-4 text-black"
                 >
                   Précédent
                 </Button>
@@ -588,7 +602,7 @@ export default function RegisterFlowPage() {
                   type="button"
                   onClick={goToNextStep}
                   disabled={!isCurrentStepValid()}
-                  className={`px-4 ml-auto ${!isCurrentStepValid() ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`px-4 ml-auto text-black ${!isCurrentStepValid() ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   Suivant
                 </Button>
@@ -596,7 +610,7 @@ export default function RegisterFlowPage() {
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="px-4 ml-auto"
+                  className="px-4 ml-auto text-black"
                 >
                   {isLoading ? 'Création en cours...' : 'Créer mon compte'}
                 </Button>

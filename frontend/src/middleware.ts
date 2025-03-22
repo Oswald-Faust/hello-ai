@@ -34,15 +34,24 @@ export function middleware(request: NextRequest) {
   // Vérifier si l'utilisateur est authentifié
   const token = request.cookies.get('token');
   
+  // Routes admin
+  const isAdminRoute = request.nextUrl.pathname.startsWith('/dashboard/admin');
+  
   // Si l'utilisateur n'est pas authentifié, rediriger vers la page de connexion
   if (!token) {
     console.log('[MIDDLEWARE] Redirection vers login:', request.nextUrl.pathname);
     
-    // Créer l'URL de redirection
-    const loginUrl = new URL('/auth/login', request.url);
-    loginUrl.searchParams.set('from', request.nextUrl.pathname);
+    // Stocker l'URL de redirection dans un cookie plutôt qu'en paramètre
+    // pour éviter des problèmes potentiels avec les URL trop longues
+    const response = NextResponse.redirect(new URL('/auth/login', request.url));
+    response.cookies.set('redirectUrl', request.nextUrl.pathname, { 
+      path: '/',
+      maxAge: 60 * 10, // 10 minutes
+      httpOnly: true,
+      sameSite: 'lax'
+    });
     
-    return NextResponse.redirect(loginUrl);
+    return response;
   }
   
   // Utilisateur authentifié, laisser passer

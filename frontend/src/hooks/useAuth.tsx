@@ -123,7 +123,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       console.log('[AUTH HOOK] Tentative de connexion pour:', email);
       
-      // Version simplifiée sans timeout
       const response = await api.post('/auth/login', { email, password });
       
       const { token, refreshToken, user } = response.data;
@@ -132,11 +131,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Aucun token reçu du serveur');
       }
       
+      // Stocker les informations d'authentification
       localStorage.setItem('token', token);
       if (refreshToken) {
         localStorage.setItem('refreshToken', refreshToken);
       }
       localStorage.setItem('user', JSON.stringify(user));
+      
       console.log('[AUTH HOOK] Connexion réussie pour:', email);
       console.log('[AUTH HOOK] Rôle utilisateur:', user.role);
       
@@ -144,13 +145,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(user);
       setLoading(false);
       
-      // Redirection directe basée sur le rôle
-      if (user.role === 'admin' || user.role === 'superadmin') {
-        console.log('[AUTH HOOK] Redirection directe vers le dashboard admin');
-        window.location.replace('/dashboard/admin'); // replace évite d'ajouter à l'historique
+      // Récupérer l'URL de redirection stockée dans les cookies
+      const getCookie = (name: string) => {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop()?.split(';').shift();
+        return null;
+      };
+      
+      // Déterminer la redirection
+      const redirectUrl = getCookie('redirectUrl');
+      
+      // Si on a une URL de redirection et qu'elle correspond à notre rôle
+      if (redirectUrl) {
+        // Supprimer le cookie de redirection
+        document.cookie = 'redirectUrl=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+        
+        // Vérifier si c'est une route admin et si l'utilisateur est admin
+        if (redirectUrl.startsWith('/dashboard/admin') && user.role !== 'admin') {
+          console.log('[AUTH HOOK] Tentative d\'accès admin refusée, redirection vers dashboard utilisateur');
+          window.location.replace('/dashboard');
+        } else {
+          console.log('[AUTH HOOK] Redirection vers:', redirectUrl);
+          window.location.replace(redirectUrl);
+        }
       } else {
-        console.log('[AUTH HOOK] Redirection directe vers le dashboard utilisateur');
-        window.location.replace('/dashboard'); // replace évite d'ajouter à l'historique
+        // Pas d'URL de redirection, rediriger vers le dashboard approprié
+        if (user.role === 'admin') {
+          console.log('[AUTH HOOK] Redirection vers le dashboard admin');
+          window.location.replace('/dashboard/admin');
+        } else {
+          console.log('[AUTH HOOK] Redirection vers le dashboard utilisateur');
+          window.location.replace('/dashboard');
+        }
       }
     } catch (err: any) {
       console.error('[AUTH HOOK] Erreur lors de la connexion:', err);

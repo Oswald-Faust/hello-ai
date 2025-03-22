@@ -8,12 +8,12 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-primary text-primary-foreground hover:bg-primary/90 before:absolute before:inset-0 before:w-full before:h-full before:bg-white/10 before:scale-x-0 before:origin-right before:transition-transform before:duration-300 hover:before:scale-x-100 hover:before:origin-left',
-        destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90 before:absolute before:inset-0 before:w-full before:h-full before:bg-white/10 before:scale-x-0 before:origin-right before:transition-transform before:duration-300 hover:before:scale-x-100 hover:before:origin-left',
-        outline: 'border border-input hover:bg-accent hover:text-accent-foreground hover:border-primary/80 transition-colors duration-300',
-        secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80 before:absolute before:inset-0 before:w-full before:h-full before:bg-white/10 before:scale-x-0 before:origin-right before:transition-transform before:duration-300 hover:before:scale-x-100 hover:before:origin-left',
-        ghost: 'hover:bg-accent hover:text-accent-foreground transition-colors duration-300',
-        link: 'underline-offset-4 hover:underline text-primary transition-all duration-300',
+        default: 'bg-primary text-white hover:bg-primary/90 before:absolute before:inset-0 before:w-full before:h-full before:bg-white/10 before:scale-x-0 before:origin-right before:transition-transform before:duration-300 hover:before:scale-x-100 hover:before:origin-left',
+        destructive: 'bg-destructive text-black hover:bg-destructive/90 before:absolute before:inset-0 before:w-full before:h-full before:bg-white/10 before:scale-x-0 before:origin-right before:transition-transform before:duration-300 hover:before:scale-x-100 hover:before:origin-left',
+        outline: 'border border-input bg-background text-black hover:bg-accent hover:text-black hover:border-primary/80 transition-colors duration-300',
+        secondary: 'bg-secondary text-black hover:bg-secondary/80 before:absolute before:inset-0 before:w-full before:h-full before:bg-white/10 before:scale-x-0 before:origin-right before:transition-transform before:duration-300 hover:before:scale-x-100 hover:before:origin-left',
+        ghost: 'text-black hover:bg-accent hover:text-black transition-colors duration-300',
+        link: 'underline-offset-4 hover:underline text-primary text-black transition-all duration-300',
         gradient: 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 transition-all duration-300',
       },
       size: {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { Card } from '@/components/ui/Card';
@@ -12,7 +12,6 @@ import { Alert, AlertDescription } from '@/components/ui/Alert';
 
 export default function LoginPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   
   const { login, user, error } = useAuth();
   const [email, setEmail] = useState('');
@@ -20,31 +19,14 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
   
-  // Effet pour rediriger l'utilisateur s'il est déjà connecté
+  // Version simplifiée : rediriger uniquement si l'utilisateur est déjà connecté
+  // et ne pas ajouter de logique complexe qui pourrait causer des boucles
   useEffect(() => {
     if (user) {
-      console.log('[LOGIN PAGE] Utilisateur connecté, préparation de la redirection');
-      
-      // Récupérer le paramètre "from" (sans le _auth_no_redirect)
-      const from = searchParams?.get('from');
-      
-      // Déterminer la destination
-      let destination = '/dashboard';
-      
-      if (from && !from.includes('/auth/') && from !== '/') {
-        destination = from;
-        console.log('[LOGIN PAGE] Redirection vers:', destination);
-      } else if (user.role === 'admin' || user.role === 'superadmin') {
-        destination = '/dashboard/admin';
-        console.log('[LOGIN PAGE] Redirection vers le dashboard admin');
-      } else {
-        console.log('[LOGIN PAGE] Redirection vers le dashboard utilisateur');
-      }
-      
-      // Redirection directe via window.location pour un rechargement complet
-      window.location.href = destination;
+      console.log('[LOGIN PAGE] Utilisateur déjà connecté');
+      // La redirection sera gérée par la fonction login
     }
-  }, [user, searchParams]);
+  }, [user]);
 
   // Effet pour la gestion des erreurs
   useEffect(() => {
@@ -63,7 +45,7 @@ export default function LoginPage() {
     try {
       console.log('[LOGIN PAGE] Tentative de connexion avec:', email);
       await login(email, password);
-      // La redirection est gérée par l'effet useEffect ci-dessus
+      // La redirection est gérée par la fonction login dans useAuth
     } catch (err: any) {
       console.error('[LOGIN PAGE] Erreur pendant la connexion:', err);
       setLoginError(err?.message || 'Erreur de connexion. Veuillez réessayer.');
@@ -76,7 +58,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Bienvenue sur Lydia</h1>
-          <p className="text-gray-600 mt-2">Connectez-vous pour accéder à votre compte</p>
+          <p className="text-black mt-2">Connectez-vous pour accéder à votre compte</p>
         </div>
         
         <Card className="p-8 bg-white shadow-xl rounded-xl border-0">
@@ -127,14 +109,14 @@ export default function LoginPage() {
                 className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary"
                 disabled={isLoading}
               />
-              <label htmlFor="remember" className="text-sm text-gray-600">
+              <label htmlFor="remember" className="text-sm text-black">
                 Se souvenir de moi
               </label>
             </div>
             
             <Button 
               type="submit" 
-              className="w-full h-11 bg-primary hover:bg-primary-dark transition-colors"
+              className="w-full h-11 bg-primary hover:bg-primary-dark transition-colors text-black"
               disabled={isLoading}
             >
               {isLoading ? 'Connexion en cours...' : 'Se connecter'}
@@ -147,14 +129,14 @@ export default function LoginPage() {
                 <div className="w-full border-t border-gray-200"></div>
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-gray-500">ou</span>
+                <span className="bg-white px-2 text-black">ou</span>
               </div>
             </div>
             
             <div className="mt-6 grid gap-3">
               <Button
                 variant="outline"
-                className="h-11 bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 flex items-center justify-center"
+                className="h-11 bg-white text-black border border-gray-300 hover:bg-gray-50 flex items-center justify-center"
                 disabled={isLoading}
               >
                 <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
@@ -171,7 +153,7 @@ export default function LoginPage() {
           </div>
           
           <div className="text-center mt-8">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-black">
               Vous n&apos;avez pas de compte?{' '}
               <Link href="/auth/register" className="text-primary hover:underline font-medium">
                 Créer un compte

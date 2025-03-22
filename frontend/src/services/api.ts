@@ -1,13 +1,12 @@
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 // Créer une instance axios avec la configuration de base
 const api = axios.create({
   baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  withCredentials: true,
+  timeout: 30000,
 });
 
 // Intercepteur pour les requêtes
@@ -91,7 +90,8 @@ api.interceptors.response.use(
           localStorage.removeItem('refreshToken');
           localStorage.removeItem('user');
           processQueue(new Error('Aucun refresh token disponible'));
-          window.location.href = '/login';
+          document.cookie = `redirectUrl=${window.location.pathname}; path=/; max-age=600`;
+          window.location.href = '/auth/login';
           return Promise.reject(error);
         }
         
@@ -128,7 +128,8 @@ api.interceptors.response.use(
         processQueue(refreshError);
         
         // Rediriger vers la page de connexion
-        window.location.href = '/login';
+        document.cookie = `redirectUrl=${window.location.pathname}; path=/; max-age=600`;
+        window.location.href = '/auth/login';
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
