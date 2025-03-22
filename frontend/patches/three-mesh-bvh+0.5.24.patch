@@ -1,0 +1,10 @@
+diff --git a/node_modules/three-mesh-bvh/src/core/MeshBVH.js b/node_modules/three-mesh-bvh/src/core/MeshBVH.js
+index a54e96b..3f74b63 100644
+--- a/node_modules/three-mesh-bvh/src/core/MeshBVH.js
++++ b/node_modules/three-mesh-bvh/src/core/MeshBVH.js
+@@ -1,4 +1,4 @@
+-import { Vector3, BufferAttribute, Box3, FrontSide, Matrix4 } from 'three';
++import { Vector3, BufferAttribute, Box3, FrontSide, Matrix4 } from '../../../src/utils/threeMeshBvhFix.js';
+ import { CENTER, BYTES_PER_NODE, IS_LEAFNODE_FLAG } from './Constants.js';
+ import { buildPackedTree } from './buildFunctions.js';
+ import {

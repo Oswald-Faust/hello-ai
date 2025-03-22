@@ -4,39 +4,99 @@
 
 @layer base {
   html {
-    @apply h-full bg-gray-50;
+    @apply h-full bg-slate-950 text-gray-100 scroll-smooth;
   }
   body {
-    @apply h-full;
+    @apply h-full font-sans;
   }
   #__next {
     @apply h-full;
   }
+  
+  /* Typographie améliorée */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold tracking-tight;
+  }
+  
+  /* Scrollbar personnalisée */
+  ::-webkit-scrollbar {
+    @apply w-2;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-slate-900;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-violet-800 rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-violet-700;
+  }
 }
 
 @layer components {
+  /* Transitions globales */
+  .transition-default {
+    @apply transition-all duration-300 ease-in-out;
+  }
+  
+  /* Boutons modernisés */
   .btn {
-    @apply px-4 py-2 rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2;
+    @apply px-4 py-2.5 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200 ease-in-out flex items-center justify-center;
   }
+  
   .btn-primary {
-    @apply bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500;
+    @apply bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:from-violet-700 hover:to-indigo-700 focus:ring-violet-500 shadow-md hover:shadow-lg;
   }
+  
   .btn-secondary {
-    @apply bg-secondary-600 text-white hover:bg-secondary-700 focus:ring-secondary-500;
+    @apply bg-gradient-to-r from-sky-500 to-blue-600 text-white hover:from-sky-600 hover:to-blue-700 focus:ring-blue-500 shadow-md hover:shadow-lg;
   }
+  
   .btn-outline {
-    @apply border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 focus:ring-primary-500;
+    @apply border border-gray-600 text-gray-200 bg-transparent hover:bg-gray-800 focus:ring-violet-500 backdrop-blur-sm;
   }
+  
   .btn-danger {
-    @apply bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
+    @apply bg-gradient-to-r from-rose-600 to-red-600 text-white hover:from-rose-700 hover:to-red-700 focus:ring-red-500 shadow-md hover:shadow-lg;
   }
+  
+  /* Inputs et formulaires */
   .input {
-    @apply block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm;
+    @apply block w-full rounded-lg border-gray-700 bg-gray-800/50 shadow-sm focus:border-violet-500 focus:ring-violet-500 sm:text-sm text-white backdrop-blur-sm transition-all duration-200;
   }
+  
   .label {
-    @apply block text-sm font-medium text-gray-700;
+    @apply block text-sm font-medium text-gray-300 mb-1;
   }
+  
+  /* Cards modernisées */
   .card {
-    @apply bg-white shadow overflow-hidden rounded-lg;
+    @apply bg-gray-900/80 shadow-xl overflow-hidden rounded-xl border border-gray-800 backdrop-blur-sm transition-all duration-300 hover:shadow-2xl;
+  }
+  
+  .card-gradient {
+    @apply bg-gradient-to-br from-gray-900/90 to-slate-900/90 shadow-xl overflow-hidden rounded-xl border border-gray-800/50 backdrop-blur-sm;
+  }
+  
+  /* Effets de hover et focus */
+  .hover-lift {
+    @apply transition-all duration-300 ease-in-out hover:-translate-y-1 hover:shadow-xl;
+  }
+  
+  /* Classes d'animation */
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
   }
 } 
