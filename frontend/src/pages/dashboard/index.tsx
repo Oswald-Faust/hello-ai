@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NextPage } from 'next';
+import { useRouter } from 'next/router';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Phone, Users, Building, Clock, TrendingUp, BarChart2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -7,6 +8,26 @@ import MainLayout from '@/components/layout/MainLayout';
 
 const Dashboard: NextPage = () => {
   const { user } = useAuth();
+  const router = useRouter();
+  
+  // Rediriger si l'utilisateur n'est pas connecté
+  useEffect(() => {
+    if (!user) {
+      router.push('/login');
+    } else if (user.role === 'admin') {
+      // Si c'est un admin, le rediriger vers le dashboard admin
+      router.push('/dashboard/admin');
+    }
+  }, [user, router]);
+
+  // Si l'utilisateur n'est pas encore chargé, afficher un loader
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-12 h-12 border-4 border-t-primary-600 border-gray-200 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
   
   // Ces données seraient normalement chargées depuis l'API
   const stats = [

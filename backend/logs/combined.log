@@ -221,3 +221,15 @@
 {"level":"info","message":"Un utilisateur administrateur existe déjà","service":"lydia-backend","timestamp":"2025-03-22 12:17:39"}
 {"level":"info","message":"Serveur démarré sur le port 3001","service":"lydia-backend","timestamp":"2025-03-22 12:17:39"}
 {"level":"info","message":"Environnement: development","service":"lydia-backend","timestamp":"2025-03-22 12:17:39"}
+{"level":"info","message":"[REQUEST] GET /api/admin/dashboard/stats","service":"lydia-backend","timestamp":"2025-03-22 12:31:57"}
+{"level":"info","message":"[AUTH MIDDLEWARE] Vérification de l'accès administrateur","service":"lydia-backend","timestamp":"2025-03-22 12:31:57"}
+{"level":"info","message":"[AUTH MIDDLEWARE] Vérification de l'authentification","service":"lydia-backend","timestamp":"2025-03-22 12:31:57"}
+{"level":"warn","message":"[AUTH MIDDLEWARE] Aucun token trouvé","service":"lydia-backend","timestamp":"2025-03-22 12:31:57"}
+{"level":"info","message":"[RESPONSE] GET /api/admin/dashboard/stats - Statut: 401","service":"lydia-backend","timestamp":"2025-03-22 12:31:57"}
+{"level":"info","message":"::1 - - [22/Mar/2025:11:31:57 +0000] \"GET /api/admin/dashboard/stats HTTP/1.1\" 401 70 \"http://localhost:3000/\" \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36\"","service":"lydia-backend","timestamp":"2025-03-22 12:31:57"}
+{"level":"info","message":"[REQUEST] GET /api/admin/dashboard/stats","service":"lydia-backend","timestamp":"2025-03-22 12:31:57"}
+{"level":"info","message":"[AUTH MIDDLEWARE] Vérification de l'accès administrateur","service":"lydia-backend","timestamp":"2025-03-22 12:31:57"}
+{"level":"info","message":"[AUTH MIDDLEWARE] Vérification de l'authentification","service":"lydia-backend","timestamp":"2025-03-22 12:31:57"}
+{"level":"warn","message":"[AUTH MIDDLEWARE] Aucun token trouvé","service":"lydia-backend","timestamp":"2025-03-22 12:31:57"}
+{"level":"info","message":"[RESPONSE] GET /api/admin/dashboard/stats - Statut: 401","service":"lydia-backend","timestamp":"2025-03-22 12:31:57"}
+{"level":"info","message":"::1 - - [22/Mar/2025:11:31:57 +0000] \"GET /api/admin/dashboard/stats HTTP/1.1\" 401 70 \"http://localhost:3000/\" \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36\"","service":"lydia-backend","timestamp":"2025-03-22 12:31:57"}

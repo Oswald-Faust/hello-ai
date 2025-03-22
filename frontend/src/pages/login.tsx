@@ -20,8 +20,12 @@ const Login: NextPage = () => {
   // Rediriger si l'utilisateur est déjà connecté
   useEffect(() => {
     if (user) {
-      console.log('[LOGIN] Utilisateur déjà connecté, redirection vers le dashboard admin');
-      router.push('/dashboard/admin');
+      console.log('[LOGIN] Utilisateur déjà connecté, rôle:', user.role);
+      if (user.role === 'admin') {
+        router.push('/dashboard/admin');
+      } else {
+        router.push('/dashboard');
+      }
     }
   }, [user, router]);
 
@@ -58,8 +62,12 @@ const Login: NextPage = () => {
       const userRole = await login(email, password);
       console.log('[LOGIN] Connexion réussie, rôle détecté:', userRole);
       
-      // L'admin est automatiquement redirigé vers le dashboard admin
-      router.push('/dashboard/admin');
+      // Redirection en fonction du rôle
+      if (userRole === 'admin') {
+        router.push('/dashboard/admin');
+      } else {
+        router.push('/dashboard');
+      }
     } catch (err: any) {
       console.error('[LOGIN] Erreur de connexion:', err);
       setErrors({
@@ -82,13 +90,13 @@ const Login: NextPage = () => {
             </Link>
             <h2 className="mt-6 text-3xl font-extrabold text-gray-900">Connexion</h2>
             <p className="mt-2 text-sm text-gray-600">
-              Utilisez les identifiants admin pour accéder au dashboard
+              Connectez-vous pour accéder à votre espace
             </p>
             {/* Information de débogage */}
             <div className="mt-2 p-2 bg-yellow-100 text-yellow-800 rounded-md text-sm">
-              <strong>Identifiants Admin :</strong><br />
-              Email: admin@lydia.com<br />
-              Mot de passe: Admin123!
+              <strong>Identifiants disponibles :</strong><br />
+              Admin: admin@lydia.com / Admin123!<br />
+              Utilisateur: user@lydia.com / User123!
             </div>
           </div>
 

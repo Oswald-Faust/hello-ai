@@ -19,9 +19,11 @@ export type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Identifiants admin fixes
+// Identifiants fixes
 const ADMIN_EMAIL = 'admin@lydia.com';
 const ADMIN_PASSWORD = 'Admin123!';
+const USER_EMAIL = 'user@lydia.com';
+const USER_PASSWORD = 'User123!';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -35,7 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const parsedUser = JSON.parse(storedUser);
         setUser(parsedUser);
-        console.log('[AUTH HOOK] Utilisateur initialisé depuis le localStorage');
+        console.log('[AUTH HOOK] Utilisateur initialisé depuis le localStorage:', parsedUser.role);
       } catch (e) {
         console.error('[AUTH HOOK] Erreur lors du parsing des données utilisateur:', e);
         localStorage.removeItem('user');
@@ -65,7 +67,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('[AUTH HOOK] Connexion admin réussie');
         setUser(adminUser);
         return 'admin';
-      } else {
+      } 
+      // Vérification simple des identifiants utilisateur normal
+      else if (email === USER_EMAIL && password === USER_PASSWORD) {
+        const normalUser: User = {
+          id: '2',
+          firstName: 'Utilisateur',
+          lastName: 'Normal',
+          email: USER_EMAIL,
+          role: 'user'
+        };
+        
+        // Stocker l'utilisateur dans le localStorage
+        localStorage.setItem('user', JSON.stringify(normalUser));
+        
+        console.log('[AUTH HOOK] Connexion utilisateur normal réussie');
+        setUser(normalUser);
+        return 'user';
+      }
+      else {
         throw new Error('Email ou mot de passe incorrect');
       }
     } catch (err: any) {
