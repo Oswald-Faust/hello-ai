@@ -460,7 +460,7 @@ const generateConversationWithHistory = async (req, res) => {
       gtts.save(filePath, result.response, (err) => {
         if (err) {
           reject(err);
-        } else {
+    } else {
           resolve(filePath);
         }
       });
@@ -542,7 +542,7 @@ const downloadAudio = (req, res) => {
 const analyzeSentiment = async (req, res) => {
   try {
     const { text } = req.body;
-
+    
     if (!text) {
       return errorResponse(res, 400, 'Le texte est requis');
     }

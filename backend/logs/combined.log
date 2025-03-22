@@ -6518,3 +6518,291 @@
 {"level":"info","message":"Un utilisateur administrateur existe déjà","service":"lydia-backend","timestamp":"2025-03-22 00:22:52"}
 {"level":"info","message":"Serveur démarré sur le port 3001","service":"lydia-backend","timestamp":"2025-03-22 00:22:52"}
 {"level":"info","message":"Environnement: development","service":"lydia-backend","timestamp":"2025-03-22 00:22:52"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 00:29:17"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 00:29:17"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:29:17"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:29:17"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 00:29:17"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 00:29:25"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 00:29:26"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:29:26"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:29:26"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 00:29:26"}
+{"level":"error","message":"Erreur lors de la création de l'administrateur: Operation `users.findOne()` buffering timed out after 10000ms","service":"lydia-backend","timestamp":"2025-03-22 00:29:36"}
+{"level":"info","message":"Serveur démarré sur le port 3001","service":"lydia-backend","timestamp":"2025-03-22 00:29:36"}
+{"level":"info","message":"Environnement: development","service":"lydia-backend","timestamp":"2025-03-22 00:29:36"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 00:29:41"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 00:29:42"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:29:42"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:29:42"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 00:29:42"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:29:48"}
+{"level":"info","message":"Un utilisateur administrateur existe déjà","service":"lydia-backend","timestamp":"2025-03-22 00:29:48"}
+{"level":"info","message":"Serveur démarré sur le port 3001","service":"lydia-backend","timestamp":"2025-03-22 00:29:48"}
+{"level":"info","message":"Environnement: development","service":"lydia-backend","timestamp":"2025-03-22 00:29:48"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 00:29:51"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 00:29:51"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:29:51"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:29:51"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 00:29:51"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:29:55"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 00:29:57"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 00:29:57"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:29:58"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:29:58"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 00:29:58"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:30:05"}
+{"level":"info","message":"Un utilisateur administrateur existe déjà","service":"lydia-backend","timestamp":"2025-03-22 00:30:05"}
+{"level":"info","message":"Serveur démarré sur le port 3001","service":"lydia-backend","timestamp":"2025-03-22 00:30:05"}
+{"level":"info","message":"Environnement: development","service":"lydia-backend","timestamp":"2025-03-22 00:30:05"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 00:30:19"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 00:30:20"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:30:20"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:30:20"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 00:30:20"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:30:24"}
+{"level":"info","message":"Un utilisateur administrateur existe déjà","service":"lydia-backend","timestamp":"2025-03-22 00:30:24"}
+{"level":"info","message":"Serveur démarré sur le port 3001","service":"lydia-backend","timestamp":"2025-03-22 00:30:24"}
+{"level":"info","message":"Environnement: development","service":"lydia-backend","timestamp":"2025-03-22 00:30:24"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 00:30:27"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 00:30:27"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:30:27"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:30:27"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 00:30:27"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:30:32"}
+{"level":"info","message":"Un utilisateur administrateur existe déjà","service":"lydia-backend","timestamp":"2025-03-22 00:30:33"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 00:31:08"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 00:31:08"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:31:08"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:31:08"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 00:31:08"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 00:31:16"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 00:31:17"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:31:17"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:31:17"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 00:31:17"}
+{"level":"error","message":"Erreur lors de la création de l'administrateur: Operation `users.findOne()` buffering timed out after 10000ms","service":"lydia-backend","timestamp":"2025-03-22 00:31:27"}
+{"level":"info","message":"Serveur démarré sur le port 3001","service":"lydia-backend","timestamp":"2025-03-22 00:31:27"}
+{"level":"info","message":"Environnement: development","service":"lydia-backend","timestamp":"2025-03-22 00:31:27"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:31:36"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 00:33:27"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 00:33:27"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:33:27"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:33:27"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 00:33:27"}
+{"level":"error","message":"Erreur lors de la création de l'administrateur: Operation `users.findOne()` buffering timed out after 10000ms","service":"lydia-backend","timestamp":"2025-03-22 00:33:37"}
+{"level":"info","message":"Serveur démarré sur le port 3001","service":"lydia-backend","timestamp":"2025-03-22 00:33:37"}
+{"level":"info","message":"Environnement: development","service":"lydia-backend","timestamp":"2025-03-22 00:33:37"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:33:38"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 00:33:58"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 00:33:59"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:33:59"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:33:59"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 00:33:59"}
+{"level":"error","message":"Erreur lors de la création de l'administrateur: Operation `users.findOne()` buffering timed out after 10000ms","service":"lydia-backend","timestamp":"2025-03-22 00:34:09"}
+{"level":"info","message":"Serveur démarré sur le port 3001","service":"lydia-backend","timestamp":"2025-03-22 00:34:09"}
+{"level":"info","message":"Environnement: development","service":"lydia-backend","timestamp":"2025-03-22 00:34:09"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 00:34:11"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 00:34:12"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:34:12"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:34:12"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 00:34:12"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:34:19"}
+{"level":"info","message":"Un utilisateur administrateur existe déjà","service":"lydia-backend","timestamp":"2025-03-22 00:34:19"}
+{"level":"info","message":"Serveur démarré sur le port 3001","service":"lydia-backend","timestamp":"2025-03-22 00:34:19"}
+{"level":"info","message":"Environnement: development","service":"lydia-backend","timestamp":"2025-03-22 00:34:19"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 00:34:24"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 00:34:24"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:34:24"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:34:24"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 00:34:24"}
+{"level":"error","message":"Erreur lors de la création de l'administrateur: Operation `users.findOne()` buffering timed out after 10000ms","service":"lydia-backend","timestamp":"2025-03-22 00:34:34"}
+{"level":"info","message":"Serveur démarré sur le port 3001","service":"lydia-backend","timestamp":"2025-03-22 00:34:34"}
+{"level":"info","message":"Environnement: development","service":"lydia-backend","timestamp":"2025-03-22 00:34:34"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:34:45"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 00:34:49"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 00:34:50"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:34:50"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:34:50"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 00:34:50"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 00:34:53"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 00:34:53"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:34:53"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:34:53"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 00:34:53"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:35:02"}
+{"level":"info","message":"Un utilisateur administrateur existe déjà","service":"lydia-backend","timestamp":"2025-03-22 00:35:03"}
+{"level":"info","message":"Serveur démarré sur le port 3001","service":"lydia-backend","timestamp":"2025-03-22 00:35:03"}
+{"level":"info","message":"Environnement: development","service":"lydia-backend","timestamp":"2025-03-22 00:35:03"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 00:38:43"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 00:38:43"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:38:43"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:38:43"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 00:38:43"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:38:47"}
+{"level":"info","message":"Un utilisateur administrateur existe déjà","service":"lydia-backend","timestamp":"2025-03-22 00:38:47"}
+{"level":"info","message":"Serveur démarré sur le port 3001","service":"lydia-backend","timestamp":"2025-03-22 00:38:47"}
+{"level":"info","message":"Environnement: development","service":"lydia-backend","timestamp":"2025-03-22 00:38:47"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 00:40:34"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 00:40:34"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:40:34"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:40:34"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 00:40:34"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 00:40:36"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 00:40:36"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:40:36"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:40:36"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 00:40:36"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:40:38"}
+{"level":"info","message":"Un utilisateur administrateur existe déjà","service":"lydia-backend","timestamp":"2025-03-22 00:40:39"}
+{"level":"info","message":"Serveur démarré sur le port 3001","service":"lydia-backend","timestamp":"2025-03-22 00:40:39"}
+{"level":"info","message":"Environnement: development","service":"lydia-backend","timestamp":"2025-03-22 00:40:39"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 00:41:17"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 00:41:17"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:41:17"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:41:17"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 00:41:17"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:41:20"}
+{"level":"info","message":"Un utilisateur administrateur existe déjà","service":"lydia-backend","timestamp":"2025-03-22 00:41:20"}
+{"level":"info","message":"Serveur démarré sur le port 3001","service":"lydia-backend","timestamp":"2025-03-22 00:41:20"}
+{"level":"info","message":"Environnement: development","service":"lydia-backend","timestamp":"2025-03-22 00:41:20"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 00:41:24"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 00:41:24"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:41:24"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:41:24"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 00:41:25"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:41:26"}
+{"level":"info","message":"Un utilisateur administrateur existe déjà","service":"lydia-backend","timestamp":"2025-03-22 00:41:27"}
+{"level":"info","message":"Serveur démarré sur le port 3001","service":"lydia-backend","timestamp":"2025-03-22 00:41:27"}
+{"level":"info","message":"Environnement: development","service":"lydia-backend","timestamp":"2025-03-22 00:41:27"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 00:44:01"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 00:44:01"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:44:01"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:44:01"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 00:44:01"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 00:44:03"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 00:44:03"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:44:03"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:44:03"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 00:44:03"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:44:06"}
+{"level":"info","message":"Un utilisateur administrateur existe déjà","service":"lydia-backend","timestamp":"2025-03-22 00:44:06"}
+{"level":"info","message":"Serveur démarré sur le port 3001","service":"lydia-backend","timestamp":"2025-03-22 00:44:06"}
+{"level":"info","message":"Environnement: development","service":"lydia-backend","timestamp":"2025-03-22 00:44:06"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 00:44:39"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 00:44:40"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:44:40"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:44:40"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 00:44:40"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:44:42"}
+{"level":"info","message":"Un utilisateur administrateur existe déjà","service":"lydia-backend","timestamp":"2025-03-22 00:44:42"}
+{"level":"info","message":"Serveur démarré sur le port 3001","service":"lydia-backend","timestamp":"2025-03-22 00:44:42"}
+{"level":"info","message":"Environnement: development","service":"lydia-backend","timestamp":"2025-03-22 00:44:42"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 00:45:11"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 00:45:11"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:45:11"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:45:11"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 00:45:11"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:45:13"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 00:46:17"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 00:46:17"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:46:17"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:46:17"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 00:46:17"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 00:46:20"}
+{"level":"info","message":"Un utilisateur administrateur existe déjà","service":"lydia-backend","timestamp":"2025-03-22 00:46:20"}
+{"level":"info","message":"Serveur démarré sur le port 3001","service":"lydia-backend","timestamp":"2025-03-22 00:46:20"}
+{"level":"info","message":"Environnement: development","service":"lydia-backend","timestamp":"2025-03-22 00:46:20"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 01:06:45"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 01:06:46"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 01:06:46"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 01:06:46"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 01:06:46"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 01:06:48"}
+{"level":"info","message":"Un utilisateur administrateur existe déjà","service":"lydia-backend","timestamp":"2025-03-22 01:06:48"}
+{"level":"info","message":"Serveur démarré sur le port 3001","service":"lydia-backend","timestamp":"2025-03-22 01:06:48"}
+{"level":"info","message":"Environnement: development","service":"lydia-backend","timestamp":"2025-03-22 01:06:48"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 01:08:01"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 01:08:02"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 01:08:02"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 01:08:02"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 01:08:02"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 01:08:07"}
+{"level":"info","message":"Un utilisateur administrateur existe déjà","service":"lydia-backend","timestamp":"2025-03-22 01:08:07"}
+{"level":"info","message":"Serveur démarré sur le port 3001","service":"lydia-backend","timestamp":"2025-03-22 01:08:07"}
+{"level":"info","message":"Environnement: development","service":"lydia-backend","timestamp":"2025-03-22 01:08:07"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 01:08:40"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 01:08:40"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 01:08:40"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 01:08:40"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 01:08:40"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 01:08:43"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 01:08:43"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 01:08:43"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 01:08:43"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 01:08:43"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 01:08:45"}
+{"level":"info","message":"Un utilisateur administrateur existe déjà","service":"lydia-backend","timestamp":"2025-03-22 01:08:46"}
+{"level":"info","message":"Serveur démarré sur le port 3001","service":"lydia-backend","timestamp":"2025-03-22 01:08:46"}
+{"level":"info","message":"Environnement: development","service":"lydia-backend","timestamp":"2025-03-22 01:08:46"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 01:09:26"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 01:09:27"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 01:09:27"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 01:09:27"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 01:09:27"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 01:09:29"}
+{"level":"info","message":"Un utilisateur administrateur existe déjà","service":"lydia-backend","timestamp":"2025-03-22 01:09:30"}
+{"level":"info","message":"Serveur démarré sur le port 3001","service":"lydia-backend","timestamp":"2025-03-22 01:09:30"}
+{"level":"info","message":"Environnement: development","service":"lydia-backend","timestamp":"2025-03-22 01:09:30"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 01:09:54"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 01:09:54"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 01:09:54"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 01:09:54"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 01:09:54"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 01:09:57"}
+{"level":"info","message":"Un utilisateur administrateur existe déjà","service":"lydia-backend","timestamp":"2025-03-22 01:09:57"}
+{"level":"info","message":"Serveur démarré sur le port 3001","service":"lydia-backend","timestamp":"2025-03-22 01:09:57"}
+{"level":"info","message":"Environnement: development","service":"lydia-backend","timestamp":"2025-03-22 01:09:57"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 01:12:34"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 01:12:35"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 01:12:35"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 01:12:35"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 01:12:35"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 01:12:37"}
+{"level":"info","message":"Un utilisateur administrateur existe déjà","service":"lydia-backend","timestamp":"2025-03-22 01:12:37"}
+{"level":"info","message":"Serveur démarré sur le port 3001","service":"lydia-backend","timestamp":"2025-03-22 01:12:38"}
+{"level":"info","message":"Environnement: development","service":"lydia-backend","timestamp":"2025-03-22 01:12:38"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 01:13:16"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 01:13:16"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 01:13:16"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 01:13:16"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 01:13:17"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 01:13:20"}
+{"level":"info","message":"Un utilisateur administrateur existe déjà","service":"lydia-backend","timestamp":"2025-03-22 01:13:20"}
+{"level":"info","message":"Serveur démarré sur le port 3001","service":"lydia-backend","timestamp":"2025-03-22 01:13:20"}
+{"level":"info","message":"Environnement: development","service":"lydia-backend","timestamp":"2025-03-22 01:13:20"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 01:13:38"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 01:13:38"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 01:13:38"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 01:13:38"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 01:13:39"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 01:13:40"}
+{"level":"info","message":"Un utilisateur administrateur existe déjà","service":"lydia-backend","timestamp":"2025-03-22 01:13:40"}
+{"level":"info","message":"Serveur démarré sur le port 3001","service":"lydia-backend","timestamp":"2025-03-22 01:13:40"}
+{"level":"info","message":"Environnement: development","service":"lydia-backend","timestamp":"2025-03-22 01:13:40"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 01:14:08"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 01:14:09"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 01:14:09"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 01:14:09"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 01:14:09"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 01:14:12"}
+{"level":"info","message":"Un utilisateur administrateur existe déjà","service":"lydia-backend","timestamp":"2025-03-22 01:14:12"}
+{"level":"warn","message":"Identifiants Fonoster non configurés. Les fonctionnalités vocales ne seront pas disponibles.","service":"lydia-backend","timestamp":"2025-03-22 01:14:25"}
+{"level":"info","message":"Service Hugging Face initialisé avec une clé API","service":"lydia-backend","timestamp":"2025-03-22 01:14:25"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 01:14:26"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 01:14:26"}
+{"level":"info","message":"Répertoire de cache audio créé: /Users/oswaldfaust/Documents/hello-ai/backend/audio_cache","service":"lydia-backend","timestamp":"2025-03-22 01:14:26"}
+{"level":"info","message":"Connexion à MongoDB établie avec succès","service":"lydia-backend","timestamp":"2025-03-22 01:14:27"}
+{"level":"info","message":"Un utilisateur administrateur existe déjà","service":"lydia-backend","timestamp":"2025-03-22 01:14:28"}
+{"level":"info","message":"Serveur démarré sur le port 3001","service":"lydia-backend","timestamp":"2025-03-22 01:14:28"}
+{"level":"info","message":"Environnement: development","service":"lydia-backend","timestamp":"2025-03-22 01:14:28"}
