@@ -10,6 +10,8 @@ frontend/.next/
 build/
 dist/
 
+backend/.env
+
 # Fichiers d'environnement
 .env
 .env.local
