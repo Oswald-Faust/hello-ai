@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Alert, AlertDescription } from '@/components/ui/Alert';
+import { UserType } from '@/services/authService';
 
 // Définition des étapes d'inscription
 type RegisterStep = 
@@ -18,12 +19,12 @@ type RegisterStep =
   | 'credentials' // Identifiants de connexion
   | 'confirmation'; // Résumé et confirmation
 
-// Types d'utilisateurs
-type UserType = 'freelance' | 'company' | 'employee';
+// Types d'utilisateurs définis dans le service d'authentification
+// type UserType = 'freelance' | 'company' | 'employee';
 
 export default function RegisterFlowPage() {
   const router = useRouter();
-  const { register, user, error } = useAuth();
+  const { registerComplete, user, error } = useAuth();
   
   // État global
   const [currentStep, setCurrentStep] = useState<RegisterStep>('userType');
@@ -69,36 +70,31 @@ export default function RegisterFlowPage() {
     setRegisterError('');
     
     try {
-      if (userType === 'company') {
-        // En réalité, il faudrait d'abord créer l'entreprise, puis utiliser son ID
-        // pour l'inscription de l'utilisateur. Pour l'instant, on simplifie
-        await register({
-          firstName,
-          lastName,
-          email,
-          password,
-          companyId: 'company_id_placeholder'
-        });
-      } else if (userType === 'employee' && companyId) {
-        // Pour les employés, on utilise l'ID de l'entreprise fourni
-        await register({
-          firstName,
-          lastName,
-          email,
-          password,
-          companyId
-        });
-      } else {
-        // Pour les freelances, pas d'entreprise associée
-        await register({
-          firstName,
-          lastName,
-          email,
-          password
-        });
-      }
+      const userData = {
+        firstName,
+        lastName,
+        email,
+        password,
+        jobTitle: jobTitle || undefined,
+        companyId: userType === 'employee' ? companyId : undefined
+      };
+      
+      const companyData = userType === 'company' ? {
+        name: companyName,
+        email: companyEmail || undefined,
+        phone: companyPhone || undefined,
+        industry: industry || undefined,
+        size: companySize || undefined
+      } : undefined;
+      
+      await registerComplete({
+        userType: userType as UserType,
+        user: userData,
+        company: companyData
+      });
+      
       // Redirection est gérée par le premier useEffect
-    } catch (err) {
+    } catch (err: any) {
       // L'erreur est gérée par le deuxième useEffect
     }
   };

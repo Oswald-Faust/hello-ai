@@ -66,7 +66,8 @@ const Login: NextPage = () => {
       if (userRole === 'admin') {
         router.push('/dashboard/admin');
       } else {
-        router.push('/dashboard');
+        // Tous les utilisateurs non-admin sont redirigés vers /dashboard/user
+        router.push('/dashboard/user');
       }
     } catch (err: any) {
       console.error('[LOGIN] Erreur de connexion:', err);

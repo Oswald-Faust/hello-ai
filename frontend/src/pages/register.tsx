@@ -92,8 +92,8 @@ const Register: NextPage = () => {
       console.log('[REGISTER] Données préparées pour l\'envoi:', registerData);
       
       await register(registerData);
-      console.log('[REGISTER] Inscription réussie, redirection vers dashboard');
-      router.push('/dashboard');
+      console.log('[REGISTER] Inscription réussie, redirection vers dashboard utilisateur');
+      router.push('/dashboard/user');
     } catch (err: any) {
       console.error('[REGISTER] Erreur d\'inscription:', err);
       console.error('[REGISTER] Détail de l\'erreur:', err.response?.data);

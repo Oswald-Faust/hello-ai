@@ -25,6 +25,7 @@
     "antd": "^5.24.4",
     "axios": "^1.8.3",
     "buffer": "^6.0.3",
+    "chakra-ui": "^0.3.9",
     "chart.js": "^4.4.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

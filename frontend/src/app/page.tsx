@@ -63,56 +63,7 @@ export default function Home() {
       {/* Navigation fixée */}
       <AnimatedNavbar />
 
-      {/* Hero Section - utilise la scène Canvas */}
-      <section className="relative min-h-screen">
-        <div className="container mx-auto px-6 pt-32 pb-16 relative z-10">
-          <RevealOnScroll>
-            <h1 className="text-5xl md:text-7xl font-bold text-white text-center mb-8">
-              L'Assistant Vocal du{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-indigo-400">
-                Futur
-              </span>
-            </h1>
-          </RevealOnScroll>
-          <RevealOnScroll delay={0.2}>
-            <p className="text-xl text-gray-300 text-center max-w-3xl mx-auto mb-12">
-              Transformez vos communications avec une IA qui comprend, apprend et s'adapte à vos besoins.
-            </p>
-          </RevealOnScroll>
-          <RevealOnScroll delay={0.4}>
-            <div className="flex justify-center gap-4 flex-wrap">
-              <a 
-                href="#features" 
-                className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-8 py-3 rounded-full font-medium hover:shadow-lg hover:shadow-violet-600/20 transition-all duration-300 flex items-center gap-2"
-              >
-                Découvrir
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                </svg>
-              </a>
-              <a 
-                href="#demo" 
-                className="border border-violet-500/40 text-white px-8 py-3 rounded-full font-medium hover:bg-violet-800/20 transition-all duration-300 flex items-center gap-2 backdrop-blur-sm"
-              >
-                Démonstration
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-              </a>
-            </div>
-          </RevealOnScroll>
-        </div>
-        <div className="absolute inset-0 z-0">
-          <HeroScene />
-        </div>
-        
-        {/* Transition vers la section suivante */}
-        <div className="absolute bottom-0 left-0 w-full overflow-hidden">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none" className="w-full h-16 text-slate-950 rotate-180">
-            <path d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z" fill="currentColor" />
-          </svg>
-        </div>
-      </section>
+      <AnimatedCTA />
 
       {/* Section Statistiques (inspirée de Revolut) */}
       <StatsSection />
