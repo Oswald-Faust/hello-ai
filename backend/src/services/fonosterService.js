@@ -253,6 +253,60 @@ const makeOutboundCall = async (to, from, webhookUrl) => {
   }
 };
 
+/**
+ * Simuler la récupération de numéros disponibles
+ * @param {Object} options - Options de recherche
+ * @returns {Promise<Array>} - Liste des numéros disponibles simulés
+ */
+const getAvailableNumbers = async (options = {}) => {
+  // Simuler un délai de réseau
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  // Générer des numéros simulés en fonction du pays
+  const countryCode = options.country === 'FR' ? '+33' :
+                     options.country === 'BE' ? '+32' :
+                     options.country === 'CH' ? '+41' :
+                     options.country === 'US' ? '+1' :
+                     options.country === 'CA' ? '+1' : '+33';
+  
+  // Générer des numéros basés sur l'indicatif régional si fourni
+  const areaPrefix = options.areaCode || '';
+  
+  // Simuler 5 numéros disponibles
+  const numbers = [];
+  for (let i = 0; i < 5; i++) {
+    // Générer un numéro aléatoire à 6 chiffres
+    const randomSuffix = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    let formattedNumber;
+    if (countryCode === '+33') {
+      // Format français: +33 1 XX XX XX
+      const prefix = areaPrefix || ['1', '2', '3', '4', '5', '6', '7', '9'][Math.floor(Math.random() * 8)];
+      formattedNumber = `${countryCode} ${prefix} ${randomSuffix.substring(0, 2)} ${randomSuffix.substring(2, 4)} ${randomSuffix.substring(4, 6)}`;
+    } else {
+      // Format générique
+      formattedNumber = `${countryCode} ${areaPrefix}${randomSuffix}`;
+    }
+    
+    numbers.push({
+      phoneNumber: formattedNumber.replace(/\s+/g, ''), // Version sans espaces pour l'API
+      friendly_name: formattedNumber, // Version avec espaces pour l'affichage
+      location: options.country === 'FR' ? 'France' :
+               options.country === 'BE' ? 'Belgique' :
+               options.country === 'CH' ? 'Suisse' :
+               options.country === 'US' ? 'États-Unis' :
+               options.country === 'CA' ? 'Canada' : 'International',
+      capabilities: {
+        voice: true,
+        sms: true,
+        mms: false
+      }
+    });
+  }
+  
+  return numbers;
+};
+
 // Initialiser le client au démarrage
 (async () => {
   try {
@@ -270,5 +324,6 @@ module.exports = {
   getPhoneNumber,
   configureWebhook,
   generateVoiceResponse,
-  makeOutboundCall
+  makeOutboundCall,
+  getAvailableNumbers
 }; 

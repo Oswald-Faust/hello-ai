@@ -60,18 +60,32 @@ router.post('/:id/conversation', authenticate, callController.addConversationEnt
 router.patch('/:id/status', authenticate, callController.updateCallStatus);
 
 /**
- * @route   POST /api/calls/incoming
- * @desc    Gérer un appel entrant
+ * @route   POST /api/calls/incoming/:companyId
+ * @desc    Gérer un appel entrant pour une entreprise spécifique
  * @access  Public
  */
-router.post('/incoming', callController.handleIncomingCall);
+router.post('/incoming/:companyId', callController.handleIncomingCall);
+
+/**
+ * @route   POST /api/calls/incoming
+ * @desc    Gérer un appel entrant (ancienne route maintenue pour compatibilité)
+ * @access  Public
+ */
+router.post('/incoming', callController.handleLegacyIncomingCall);
+
+/**
+ * @route   POST /api/calls/voice/:companyId
+ * @desc    Point d'entrée pour les réponses vocales pour une entreprise spécifique
+ * @access  Public
+ */
+router.post('/voice/:companyId', callController.handleVoiceRequest);
 
 /**
  * @route   POST /api/calls/voice
- * @desc    Point d'entrée pour les réponses vocales Fonoster
+ * @desc    Point d'entrée pour les réponses vocales (ancienne route maintenue pour compatibilité)
  * @access  Public
  */
-router.post('/voice', callController.handleVoiceRequest);
+router.post('/voice', callController.handleLegacyVoiceRequest);
 
 /**
  * @route   POST /api/calls/:callId/process-speech
@@ -79,5 +93,19 @@ router.post('/voice', callController.handleVoiceRequest);
  * @access  Public
  */
 router.post('/:callId/process-speech', callController.processSpeech);
+
+/**
+ * @route   POST /api/calls/twilio-status
+ * @desc    Gérer les notifications de statut Twilio
+ * @access  Public
+ */
+router.post('/twilio-status', callController.handleTwilioStatusCallback);
+
+/**
+ * @route   POST /api/calls/recording-status/:companyId
+ * @desc    Gérer les notifications d'enregistrement Twilio
+ * @access  Public
+ */
+router.post('/recording-status/:companyId', callController.handleRecordingStatus);
 
 module.exports = router; 

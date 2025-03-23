@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const companyController = require('../controllers/companyController');
 const { authenticate, authorize, isAdmin } = require('../middleware/authMiddleware');
+const callController = require('../controllers/callController');
 
 /**
  * @route   POST /api/companies
@@ -123,5 +124,26 @@ router.put('/:companyId/transfer-settings', authenticate, authorize(['companyAdm
 
 // Routes pour les heures d'ouverture
 router.put('/:companyId/business-hours', authenticate, authorize(['companyAdmin']), companyController.updateBusinessHours);
+
+/**
+ * @route   GET /api/companies/:companyId/calls
+ * @desc    Récupérer les appels pour une entreprise spécifique
+ * @access  Private
+ */
+router.get('/:companyId/calls', authenticate, callController.getCallsByCompany);
+
+/**
+ * @route   GET /api/companies/:companyId/calls/stats
+ * @desc    Récupérer les statistiques des appels pour une entreprise spécifique
+ * @access  Private
+ */
+router.get('/:companyId/calls/stats', authenticate, callController.getCallStats);
+
+/**
+ * @route   GET /api/companies/:companyId/calls/dashboard
+ * @desc    Récupérer les statistiques pour le tableau de bord des appels
+ * @access  Private
+ */
+router.get('/:companyId/calls/dashboard', authenticate, callController.getCallDashboardStats);
 
 module.exports = router; 

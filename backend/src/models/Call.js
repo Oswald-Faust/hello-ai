@@ -48,9 +48,24 @@ const CallSchema = new Schema({
     type: String,
     trim: true
   },
+  recordingDuration: {
+    type: Number
+  },
+  recordingStatus: {
+    type: String,
+    enum: ['in-progress', 'completed', 'failed'],
+  },
   transcription: {
     type: String,
     trim: true
+  },
+  transcriptionSid: {
+    type: String,
+    trim: true
+  },
+  transcriptionStatus: {
+    type: String,
+    enum: ['in-progress', 'completed', 'failed'],
   },
   notes: {
     type: String,

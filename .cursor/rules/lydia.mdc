@@ -1,0 +1,65 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+Nous devons développer une application SaaS permettant aux entreprises de configurer et gérer un assistant vocal intelligent nommé Lydia. Lydia répondra automatiquement aux appels entrants via un numéro de téléphone virtuel et sera entièrement personnalisable via une interface web et une application mobile. L’objectif est de fournir un système d’assistance client automatisé qui gère l'interaction vocale, tout en offrant la possibilité de transférer l'appel à un humain lorsque cela est nécessaire.
+
+## Fonctionnalités Principales :
+1. Numéro Virtuel & Réception d'Appels :
+   - Attribution d’un numéro de téléphone virtuel (via une API tierce comme Fonoster).
+   - Gestion des appels entrants avec une redirection vers notre backend pour traitement.
+   - Enregistrement et suivi des appels.
+
+2. Configuration du Modèle Vocal par l’Entreprise :
+   - Interface web et mobile permettant aux entreprises de personnaliser le modèle vocal de Lydia (ton, style, réponses, messages d'accueil, etc.).
+   - Possibilité d’importer des fichiers audio, d’enregistrer directement via la plateforme et de définir des scénarios de réponses personnalisées (par exemple, selon l’heure ou le type d’appel).
+   - Stockage des configurations dans une base de données pour une récupération rapide lors de l'appel.
+
+3. Traitement des Appels et Réponse Automatique :
+   - À la réception d’un appel, notre backend récupère la configuration vocale associée au numéro de téléphone de l’entreprise.
+   - Lydia répond automatiquement selon le script défini.
+   - Intégration d’un module de reconnaissance vocale (Google Speech-to-Text, Twilio Speech Recognition, ou une alternative open source) pour analyser les requêtes des appelants.
+   - Si le modèle détecte qu’une intervention humaine est nécessaire, Lydia propose un transfert vers un agent.
+
+4. Intégration d’IA et Génération de Réponses :
+   - L’IA (par exemple via un modèle GPT ou un modèle conversationnel open source) génère les réponses dynamiques en cas de questions complexes.
+   - Le texte généré est ensuite transformé en audio via un moteur TTS (Google TTS, Coqui TTS, ElevenLabs, etc.) en fonction des préférences de l’entreprise.
+
+5. Tableau de Bord & Rapports :
+   - Dashboard interactif pour permettre aux entreprises de suivre en temps réel l’activité des appels, consulter les statistiques (durée, nombre d’appels, taux de transfert, etc.) et ajuster leur configuration.
+   - Export des rapports d’appels sous différents formats (CSV, PDF).
+
+6. API d’Intégration :
+   - Fournir une API REST pour que des services tiers ou l’application mobile puissent interagir avec le backend (gestion des configurations, récupération des statistiques, génération audio en temps réel).
+
+## Technologies Utilisées :
+- Frontend Web : Next.js (React.js) pour créer une interface utilisateur réactive et dynamique.
+- Application Mobile : React Native pour un déploiement sur iOS et Android.
+- Backend : Node.js avec Express pour construire l’API et gérer la logique métier.
+- Base de Données : PostgreSQL ou MongoDB pour stocker les informations des entreprises, configurations vocales et historiques d’appels.
+- Communication Téléphonique : Intégration avec Fonoster (ou Twillio) pour la gestion des numéros virtuels et des appels.
+- Reconnaissance Vocale : Google Speech-to-Text, ou alternative open source comme Vosk.
+- Synthèse Vocale (TTS) : Options incluant Google TTS, Coqui TTS, ElevenLabs API (ou d'autres alternatives en fonction du coût et de la personnalisation souhaitée).
+- Sécurité : OAuth2/JWT pour l'authentification, chiffrement des données (AES-256), HTTPS/SSL pour sécuriser les communications.
+- Infrastructure & Déploiement : Docker et Kubernetes pour la conteneurisation, hébergement sur AWS, Azure ou Vercel pour le frontend Next.js.
+- Communication en Temps Réel : WebSockets (ou Socket.io) pour les notifications et mises à jour en direct.
+
+Objectifs de Développement :
+1. Créer une solution SaaS complète pour permettre aux entreprises d'automatiser et personnaliser leur service client vocal.
+2. Assurer une interface utilisateur fluide et intuitive (web et mobile) pour la configuration et le suivi des interactions.
+3. Garantir une intégration transparente entre les modules de téléphonie, reconnaissance vocale et synthèse vocale.
+4. Mettre en place un système scalable et sécurisé, capable de gérer un grand nombre d’appels simultanés.
+5. Fournir des outils d’analyse avancés et des rapports détaillés pour mesurer la performance du service.
+
+Exigences Spécifiques pour Lydia :
+- Lydia doit être capable de répondre automatiquement aux appels en utilisant le modèle vocal personnalisé défini par chaque entreprise.
+- En cas d’interaction plus complexe, Lydia doit analyser la requête via un module de reconnaissance vocale, générer une réponse (ou consulter une base de données de réponses prédéfinies) et la restituer en audio.
+- La solution doit être modulable afin d’intégrer de nouveaux fournisseurs de TTS ou modules de reconnaissance vocale si besoin.
+- L’interface de configuration doit permettre aux entreprises de tester la voix générée (avec possibilité de télécharger des fichiers audio de test) et d’ajuster la configuration en temps réel.
+
+Déploiement et Maintenance :
+- Mettre en place un environnement de CI/CD (par exemple, avec GitHub Actions) pour automatiser les tests et le déploiement.
+- Fournir une documentation complète et des guides d’intégration pour faciliter l’adoption par des équipes techniques tierces.
+- Prévoir un mécanisme de logs et de monitoring pour assurer une maintenance proactive du système.

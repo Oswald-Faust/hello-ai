@@ -63,7 +63,10 @@ const configureWebhook = async (phoneNumberSid, webhookUrl) => {
   try {
     const updatedNumber = await client.incomingPhoneNumbers(phoneNumberSid)
       .update({
-        voiceUrl: webhookUrl
+        voiceUrl: webhookUrl,
+        statusCallback: `${webhookUrl.split('?')[0].replace(/\/incoming.*$/, '/twilio-status')}`,
+        statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'],
+        statusCallbackMethod: 'POST'
       });
 
     logger.info(`Webhook configuré pour ${updatedNumber.phoneNumber}: ${webhookUrl}`);
@@ -144,10 +147,159 @@ const makeOutboundCall = async (to, from, webhookUrl) => {
   }
 };
 
+/**
+ * Rechercher des numéros de téléphone disponibles
+ * @param {Object} options - Options de recherche
+ * @returns {Promise<Array>} - Liste des numéros disponibles
+ */
+const searchAvailableNumbers = async (options = {}) => {
+  if (!client) {
+    throw new Error('Client Twilio non initialisé. Vérifiez vos identifiants.');
+  }
+  
+  try {
+    const availableNumbers = await client.availablePhoneNumbers(options.country || 'FR')
+      .local
+      .list({
+        areaCode: options.areaCode,
+        limit: options.limit || 10
+      });
+
+    // Transformer en format standardisé
+    return availableNumbers.map(number => ({
+      phoneNumber: number.phoneNumber,
+      friendly_name: number.friendlyName,
+      location: number.locality || number.region,
+      capabilities: {
+        voice: number.capabilities.voice,
+        sms: number.capabilities.sms,
+        mms: number.capabilities.mms
+      }
+    }));
+  } catch (error) {
+    logger.error('Erreur lors de la recherche de numéros disponibles:', error);
+    throw error;
+  }
+};
+
+/**
+ * Obtenir la tarification des numéros de téléphone par pays
+ * @param {string} country - Code pays
+ * @returns {Promise<Object>} - Informations de tarification
+ */
+const getPhoneNumberPricing = async (country = 'FR') => {
+  if (!client) {
+    throw new Error('Client Twilio non initialisé. Vérifiez vos identifiants.');
+  }
+  
+  try {
+    // Récupérer les informations de tarification
+    const pricingInfo = await client.pricing.v2.phoneNumbers
+      .countries(country)
+      .fetch();
+    
+    // Formatter les résultats
+    const pricing = {
+      country: pricingInfo.country,
+      countryName: pricingInfo.countryName,
+      phoneNumberPrices: []
+    };
+    
+    if (pricingInfo.phoneNumberPrices && pricingInfo.phoneNumberPrices.length > 0) {
+      pricing.phoneNumberPrices = pricingInfo.phoneNumberPrices.map(price => ({
+        type: price.type,
+        basePrice: price.basePrice,
+        currentPrice: price.currentPrice,
+        currency: price.currency
+      }));
+    }
+    
+    return pricing;
+  } catch (error) {
+    logger.error('Erreur lors de la récupération des tarifs:', error);
+    
+    // En cas d'erreur ou si l'API de pricing n'est pas disponible, renvoyer des données par défaut
+    return {
+      country,
+      countryName: country === 'FR' ? 'France' : 'Unknown',
+      phoneNumberPrices: [
+        {
+          type: 'local',
+          basePrice: '1.00',
+          currentPrice: '1.00',
+          currency: 'EUR'
+        }
+      ]
+    };
+  }
+};
+
+/**
+ * Valider un numéro de téléphone
+ * @param {string} phoneNumber - Numéro à valider
+ * @returns {Promise<Object>} - Informations de validation
+ */
+const validatePhoneNumber = async (phoneNumber) => {
+  if (!client) {
+    throw new Error('Client Twilio non initialisé. Vérifiez vos identifiants.');
+  }
+  
+  try {
+    const validationResult = await client.lookups.v2
+      .phoneNumbers(phoneNumber)
+      .fetch({ fields: 'line_type_intelligence' });
+    
+    return {
+      isValid: true,
+      phoneNumber: validationResult.phoneNumber,
+      countryCode: validationResult.countryCode,
+      carrier: validationResult.carrier,
+      type: validationResult.lineTypeIntelligence?.type
+    };
+  } catch (error) {
+    logger.error('Erreur lors de la validation du numéro:', error);
+    return {
+      isValid: false,
+      error: error.message
+    };
+  }
+};
+
+/**
+ * Active l'enregistrement des appels pour un numéro
+ * @param {string} phoneNumberSid - SID du numéro de téléphone
+ * @param {string} recordingWebhookUrl - URL pour recevoir les enregistrements
+ * @returns {Promise<Object>} - Informations sur le numéro mis à jour
+ */
+const enableCallRecording = async (phoneNumberSid, recordingWebhookUrl) => {
+  if (!client) {
+    throw new Error('Client Twilio non initialisé. Vérifiez vos identifiants.');
+  }
+  
+  try {
+    const updatedNumber = await client.incomingPhoneNumbers(phoneNumberSid)
+      .update({
+        voiceMethod: 'POST',
+        recordingStatusCallback: recordingWebhookUrl,
+        recordingStatusCallbackMethod: 'POST'
+      });
+
+    logger.info(`Enregistrement des appels activé pour ${updatedNumber.phoneNumber}`);
+    return updatedNumber;
+  } catch (error) {
+    logger.error('Erreur lors de l\'activation de l\'enregistrement des appels:', error);
+    throw error;
+  }
+};
+
 module.exports = {
   client,
   purchasePhoneNumber,
   configureWebhook,
   generateTwiMLResponse,
-  makeOutboundCall
+  makeOutboundCall,
+  searchAvailableNumbers,
+  getPhoneNumberPricing,
+  validatePhoneNumber,
+  enableCallRecording
 }; 

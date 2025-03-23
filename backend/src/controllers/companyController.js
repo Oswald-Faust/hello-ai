@@ -214,7 +214,15 @@ exports.updateSubscription = async (req, res, next) => {
 exports.purchasePhoneNumber = async (req, res) => {
   try {
     const { companyId } = req.params;
-    const { phoneNumber, appName } = req.body;
+    const { 
+      phoneNumber, 
+      appName, 
+      provider = 'twilio',  // Définir Twilio comme fournisseur par défaut
+      country = 'FR', 
+      areaCode, 
+      replace = false,
+      enableRecording = true  // Activer l'enregistrement des appels par défaut
+    } = req.body;
     
     const company = await Company.findById(companyId);
     
@@ -224,41 +232,106 @@ exports.purchasePhoneNumber = async (req, res) => {
       });
     }
     
-    // Si l'entreprise a déjà un numéro, vérifier si on veut le remplacer
-    if (company.fonosterPhoneNumber) {
-      if (!req.body.replace) {
+    // Vérifier si l'entreprise a déjà un numéro actif
+    const hasExistingFonosterNumber = company.fonosterPhoneNumber;
+    const hasExistingTwilioNumber = company.twilioPhoneNumber;
+    
+    if ((provider === 'fonoster' && hasExistingFonosterNumber) || 
+        (provider === 'twilio' && hasExistingTwilioNumber)) {
+      if (!replace) {
         return res.status(400).json({
-          message: 'L\'entreprise possède déjà un numéro de téléphone. Définissez replace=true pour le remplacer.'
+          message: `L'entreprise possède déjà un numéro de téléphone ${provider}. Définissez replace=true pour le remplacer.`
         });
       }
     }
     
-    // Créer une application vocale avec Fonoster
-    const voiceApp = await fonosterService.createVoiceApp({
-      name: appName || `Lydia - ${company.name}`,
-      webhookUrl: `${process.env.API_BASE_URL || 'http://localhost:3001'}/api/calls/incoming`,
-      voiceUrl: `${process.env.API_BASE_URL || 'http://localhost:3001'}/api/calls/voice`
-    });
+    let phoneNumberInfo;
+    let webhookBaseUrl = process.env.API_BASE_URL || 'http://localhost:3001';
     
-    // Obtenir un numéro pour l'application
-    const phoneNumberInfo = await fonosterService.getPhoneNumber({
-      phoneNumber: phoneNumber, // Fonoster utilise souvent un numéro SIP défini par l'utilisateur
-      appId: voiceApp.getRef(),
-      friendlyName: `Lydia - ${company.name}`
-    });
+    // Traitement en fonction du fournisseur choisi
+    if (provider === 'fonoster') {
+      // Créer une application vocale avec Fonoster
+      const voiceApp = await fonosterService.createVoiceApp({
+        name: appName || `Lydia - ${company.name}`,
+        webhookUrl: `${webhookBaseUrl}/api/calls/incoming/${companyId}`,
+        voiceUrl: `${webhookBaseUrl}/api/calls/voice/${companyId}`
+      });
+      
+      // Obtenir un numéro pour l'application
+      phoneNumberInfo = await fonosterService.getPhoneNumber({
+        phoneNumber: phoneNumber, // Fonoster utilise souvent un numéro SIP défini par l'utilisateur
+        appId: voiceApp.getRef(),
+        friendlyName: `Lydia - ${company.name}`
+      });
+      
+      // Mettre à jour l'entreprise avec le nouveau numéro
+      company.fonosterPhoneNumber = phoneNumberInfo.phoneNumber;
+      company.fonosterAppId = voiceApp.getRef();
+      
+      logger.info(`Application vocale créée pour ${company.name}: ${voiceApp.getName()}`);
+      
+    } else if (provider === 'twilio') {
+      // Import du service Twilio
+      const twilioService = require('../services/twilioService');
+      
+      // Acheter un numéro via Twilio
+      const twilioNumber = await twilioService.purchasePhoneNumber({
+        country: country,
+        areaCode: areaCode,
+        friendlyName: `Lydia - ${company.name}`
+      });
+      
+      // URL de base pour tous les webhooks
+      const baseWebhookUrl = webhookBaseUrl;
+      
+      // URL spécifique pour les appels entrants
+      const incomingCallWebhookUrl = `${baseWebhookUrl}/api/calls/incoming/${companyId}?provider=twilio`;
+      
+      // Configurer le webhook pour ce numéro
+      await twilioService.configureWebhook(
+        twilioNumber.sid,
+        incomingCallWebhookUrl
+      );
+      
+      // Activer l'enregistrement des appels si demandé
+      if (enableRecording) {
+        const recordingWebhookUrl = `${baseWebhookUrl}/api/calls/recording-status/${companyId}`;
+        await twilioService.enableCallRecording(twilioNumber.sid, recordingWebhookUrl);
+      }
+      
+      phoneNumberInfo = {
+        phoneNumber: twilioNumber.phoneNumber,
+        sid: twilioNumber.sid,
+        capabilities: twilioNumber.capabilities,
+        recordingEnabled: enableRecording
+      };
+      
+      // Mettre à jour l'entreprise avec le nouveau numéro
+      company.twilioPhoneNumber = twilioNumber.phoneNumber;
+      company.twilioPhoneNumberSid = twilioNumber.sid;
+      company.twilioPhoneNumberConfig = {
+        recordingEnabled: enableRecording,
+        purchaseDate: new Date(),
+        country: country
+      };
+      
+      logger.info(`Numéro Twilio acheté pour ${company.name}: ${twilioNumber.phoneNumber}`);
+      
+    } else {
+      return res.status(400).json({
+        message: 'Fournisseur non supporté. Utilisez "fonoster" ou "twilio".'
+      });
+    }
     
-    // Mettre à jour l'entreprise avec le nouveau numéro
-    company.fonosterPhoneNumber = phoneNumberInfo.phoneNumber;
-    company.fonosterAppId = voiceApp.getRef();
     await company.save();
     
-    logger.info(`Application vocale créée pour ${company.name}: ${voiceApp.getName()}`);
     logger.info(`Numéro de téléphone configuré pour ${company.name}: ${phoneNumberInfo.phoneNumber}`);
     
     return res.status(200).json({
       message: 'Numéro de téléphone configuré avec succès',
+      provider: provider,
       phoneNumber: phoneNumberInfo.phoneNumber,
-      appId: voiceApp.getRef()
+      details: phoneNumberInfo
     });
   } catch (error) {
     logger.error('Erreur lors de la configuration du numéro de téléphone:', error);

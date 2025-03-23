@@ -70,6 +70,16 @@ const CompanySchema = new Schema({
     saturday: { open: String, close: String, closed: Boolean },
     sunday: { open: String, close: String, closed: Boolean }
   },
+  // Référence aux configurations de conversation
+  conversationConfigs: [{
+    type: Schema.Types.ObjectId,
+    ref: 'ConversationConfig'
+  }],
+  // Configuration active par défaut
+  defaultConversationConfig: {
+    type: Schema.Types.ObjectId,
+    ref: 'ConversationConfig'
+  },
   // Configuration des prompts pour l'assistant vocal
   voiceAssistant: {
     // Données de l'entreprise à intégrer dans les prompts
@@ -119,6 +129,11 @@ const CompanySchema = new Schema({
         requiredVariables: [String],
         // Déclencheurs pour activer ce scénario
         triggers: [String],
+        // Lien vers une configuration de conversation spécifique à utiliser
+        conversationConfigId: {
+          type: Schema.Types.ObjectId,
+          ref: 'ConversationConfig'
+        },
         // Actions possibles que l'assistant peut prendre
         actions: [{
           name: String,
@@ -241,6 +256,33 @@ CompanySchema.methods.generatePromptForScenario = function(scenarioName, variabl
   }
   
   return prompt;
+};
+
+// Méthode pour récupérer la configuration de conversation active
+CompanySchema.methods.getActiveConversationConfig = async function() {
+  try {
+    if (this.defaultConversationConfig) {
+      // Peupler la référence à la configuration de conversation
+      await this.populate('defaultConversationConfig');
+      return this.defaultConversationConfig;
+    }
+    
+    // Si aucune configuration par défaut, utiliser la première configuration active
+    if (this.conversationConfigs && this.conversationConfigs.length > 0) {
+      const ConversationConfig = mongoose.model('ConversationConfig');
+      const activeConfig = await ConversationConfig.findOne({
+        _id: { $in: this.conversationConfigs },
+        active: true
+      });
+      
+      return activeConfig;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Erreur lors de la récupération de la configuration active:', error);
+    return null;
+  }
 };
 
 const Company = mongoose.model('Company', CompanySchema);

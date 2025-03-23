@@ -7,36 +7,52 @@ const { io } = require('../index');
 const { errorResponse, successResponse } = require('../utils/responseHandler');
 
 /**
- * Gérer un appel entrant
+ * Gérer un appel entrant pour une entreprise spécifique
  * @param {Object} req - Requête Express
  * @param {Object} res - Réponse Express
  */
 exports.handleIncomingCall = async (req, res) => {
   try {
     const { To, From, CallSid } = req.body;
+    const { companyId } = req.params;
+    const provider = req.query.provider || 'fonoster';
     
     // Trouver l'entreprise associée au numéro appelé
-    const company = await Company.findById(req.params.companyId).populate('voiceAssistant');
+    const company = await Company.findById(companyId);
     
     if (!company) {
-      logger.error(`Aucune entreprise trouvée pour l'ID ${req.params.companyId}`);
-      return res.status(404).json(
-        await fonosterService.generateVoiceResponse(
-          "Désolé, ce numéro n'est pas configuré correctement. Veuillez réessayer plus tard."
-        )
-      );
+      logger.error(`Aucune entreprise trouvée pour l'ID ${companyId}`);
+      
+      if (provider === 'twilio') {
+        const twilioService = require('../services/twilioService');
+        return res.status(404).send(
+          twilioService.generateTwiMLResponse("Désolé, ce numéro n'est pas configuré correctement. Veuillez réessayer plus tard.")
+        );
+      } else {
+        return res.status(404).json(
+          await fonosterService.generateVoiceResponse(
+            "Désolé, ce numéro n'est pas configuré correctement. Veuillez réessayer plus tard."
+          )
+        );
+      }
     }
     
     // Vérifier si l'entreprise est ouverte
     if (!company.isOpenNow()) {
       logger.info(`Appel reçu en dehors des heures d'ouverture pour ${company.name}`);
-      return res.status(200).json(
-        await fonosterService.generateVoiceResponse(
-          `Merci d'avoir appelé ${company.name}. Nous sommes actuellement fermés. Veuillez nous rappeler pendant nos heures d'ouverture.`,
-          {},
-          company
-        )
-      );
+      
+      let message = `Merci d'avoir appelé ${company.name}. Nous sommes actuellement fermés. Veuillez nous rappeler pendant nos heures d'ouverture.`;
+      
+      if (provider === 'twilio') {
+        const twilioService = require('../services/twilioService');
+        return res.status(200).send(
+          twilioService.generateTwiMLResponse(message)
+        );
+      } else {
+        return res.status(200).json(
+          await fonosterService.generateVoiceResponse(message, {}, company)
+        );
+      }
     }
     
     // Créer un nouvel enregistrement d'appel
@@ -45,8 +61,9 @@ exports.handleIncomingCall = async (req, res) => {
       company: company._id,
       from: From,
       to: To,
-      direction: 'entrant',
-      status: 'en-cours'
+      direction: 'inbound',
+      status: 'in-progress',
+      provider: provider
     });
     
     await call.save();
@@ -68,27 +85,197 @@ exports.handleIncomingCall = async (req, res) => {
       welcomeMessage = welcomeMessage.replace(/{{companyName}}/g, company.name);
     }
     
-    // Générer la réponse vocale avec le message d'accueil
-    const voiceResponse = await fonosterService.generateVoiceResponse(
-      welcomeMessage,
-      {
-        voice: company.voiceAssistant?.voice?.gender || 'female',
-        language: 'fr-FR',
-        gather: {
-          action: `/api/calls/${call._id}/process-speech`,
-          prompt: "Comment puis-je vous aider aujourd'hui?"
-        }
-      },
-      company
-    );
-    
-    // Ajouter le message d'accueil au transcript
-    call.addToTranscript('lydia', welcomeMessage);
-    await call.save();
-    
-    return res.status(200).json(voiceResponse);
+    // Générer la réponse vocale selon le fournisseur
+    if (provider === 'twilio') {
+      const twilioService = require('../services/twilioService');
+      const voice = company.voiceAssistant?.voice?.gender === 'male' ? 'Polly.Mathieu' : 'Polly.Léa';
+      
+      return res.status(200).send(
+        twilioService.generateTwiMLResponse(
+          welcomeMessage,
+          {
+            voice: voice,
+            language: 'fr-FR',
+            gather: {
+              input: 'speech',
+              action: `/api/calls/${call._id}/process-speech?provider=twilio`,
+              prompt: "Comment puis-je vous aider aujourd'hui?"
+            }
+          }
+        )
+      );
+    } else {
+      // Réponse Fonoster par défaut
+      const voiceResponse = await fonosterService.generateVoiceResponse(
+        welcomeMessage,
+        {
+          voice: company.voiceAssistant?.voice?.gender || 'female',
+          language: 'fr-FR',
+          gather: {
+            action: `/api/calls/${call._id}/process-speech`,
+            prompt: "Comment puis-je vous aider aujourd'hui?"
+          }
+        },
+        company
+      );
+      
+      // Ajouter le message d'accueil au transcript
+      call.addToTranscript('lydia', welcomeMessage);
+      await call.save();
+      
+      return res.status(200).json(voiceResponse);
+    }
   } catch (error) {
     logger.error('Erreur lors du traitement de l\'appel entrant:', error);
+    return res.status(500).json(
+      await fonosterService.generateVoiceResponse(
+        "Désolé, une erreur s'est produite. Veuillez réessayer plus tard."
+      )
+    );
+  }
+};
+
+/**
+ * Gérer un appel entrant (route legacy)
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
+exports.handleLegacyIncomingCall = async (req, res) => {
+  try {
+    const { To } = req.body;
+    
+    // Trouver l'entreprise associée au numéro appelé
+    let company;
+    
+    if (To) {
+      // Chercher par numéro de téléphone
+      company = await Company.findOne({ 
+        $or: [
+          { fonosterPhoneNumber: To },
+          { twilioPhoneNumber: To }
+        ]
+      });
+    }
+    
+    if (!company) {
+      logger.error(`Aucune entreprise trouvée pour le numéro ${To}`);
+      return res.status(404).json(
+        await fonosterService.generateVoiceResponse(
+          "Désolé, ce numéro n'est pas configuré correctement. Veuillez réessayer plus tard."
+        )
+      );
+    }
+    
+    // Rediriger vers la nouvelle route avec l'ID de l'entreprise
+    req.params = { companyId: company._id.toString() };
+    return this.handleIncomingCall(req, res);
+  } catch (error) {
+    logger.error('Erreur lors du traitement de l\'appel entrant (legacy):', error);
+    return res.status(500).json(
+      await fonosterService.generateVoiceResponse(
+        "Désolé, une erreur s'est produite. Veuillez réessayer plus tard."
+      )
+    );
+  }
+};
+
+/**
+ * Gérer une requête vocale pour une entreprise spécifique
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
+exports.handleVoiceRequest = async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    const provider = req.query.provider || 'fonoster';
+    
+    // Récupérer l'entreprise
+    const company = await Company.findById(companyId);
+    
+    if (!company) {
+      logger.error(`Aucune entreprise trouvée pour l'ID ${companyId}`);
+      
+      if (provider === 'twilio') {
+        const twilioService = require('../services/twilioService');
+        return res.status(404).send(
+          twilioService.generateTwiMLResponse("Désolé, ce numéro n'est pas configuré correctement.")
+        );
+      } else {
+        return res.status(404).json(
+          await fonosterService.generateVoiceResponse(
+            "Désolé, ce numéro n'est pas configuré correctement."
+          )
+        );
+      }
+    }
+    
+    // Récupérer le message d'accueil personnalisé
+    let welcomeMessage = "Bonjour et bienvenue. Comment puis-je vous aider?";
+    
+    if (company.voiceAssistant && company.voiceAssistant.prompts && company.voiceAssistant.prompts.welcomePrompt) {
+      welcomeMessage = company.voiceAssistant.prompts.welcomePrompt;
+      welcomeMessage = welcomeMessage.replace(/{{companyName}}/g, company.name);
+    }
+    
+    // Répondre selon le fournisseur
+    if (provider === 'twilio') {
+      const twilioService = require('../services/twilioService');
+      const voice = company.voiceAssistant?.voice?.gender === 'male' ? 'Polly.Mathieu' : 'Polly.Léa';
+      
+      return res.status(200).send(
+        twilioService.generateTwiMLResponse(welcomeMessage, { voice })
+      );
+    } else {
+      return res.status(200).json(
+        await fonosterService.generateVoiceResponse(welcomeMessage, {}, company)
+      );
+    }
+  } catch (error) {
+    logger.error('Erreur lors du traitement de la requête vocale:', error);
+    return res.status(500).json(
+      await fonosterService.generateVoiceResponse(
+        "Désolé, une erreur s'est produite. Veuillez réessayer plus tard."
+      )
+    );
+  }
+};
+
+/**
+ * Gérer une requête vocale (route legacy)
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
+exports.handleLegacyVoiceRequest = async (req, res) => {
+  try {
+    const { To } = req.body;
+    
+    // Trouver l'entreprise associée au numéro appelé
+    let company;
+    
+    if (To) {
+      // Chercher par numéro de téléphone
+      company = await Company.findOne({ 
+        $or: [
+          { fonosterPhoneNumber: To },
+          { twilioPhoneNumber: To }
+        ]
+      });
+    }
+    
+    if (!company) {
+      logger.error(`Aucune entreprise trouvée pour le numéro ${To}`);
+      return res.status(404).json(
+        await fonosterService.generateVoiceResponse(
+          "Désolé, ce numéro n'est pas configuré correctement. Veuillez réessayer plus tard."
+        )
+      );
+    }
+    
+    // Rediriger vers la nouvelle route avec l'ID de l'entreprise
+    req.params = { companyId: company._id.toString() };
+    return this.handleVoiceRequest(req, res);
+  } catch (error) {
+    logger.error('Erreur lors du traitement de la requête vocale (legacy):', error);
     return res.status(500).json(
       await fonosterService.generateVoiceResponse(
         "Désolé, une erreur s'est produite. Veuillez réessayer plus tard."
@@ -105,46 +292,89 @@ exports.handleIncomingCall = async (req, res) => {
 exports.processSpeech = async (req, res) => {
   try {
     const { callId } = req.params;
-    const { SpeechResult } = req.body;
+    const provider = req.query.provider || 'fonoster';
+    
+    // Le résultat de la reconnaissance vocale varie selon le fournisseur
+    let speechResult;
+    
+    if (provider === 'twilio') {
+      speechResult = req.body.SpeechResult;
+    } else {
+      speechResult = req.body.SpeechResult || req.body.speech;
+    }
     
     // Si aucun résultat de parole n'est disponible
-    if (!SpeechResult) {
-      return res.status(200).json(
-        await fonosterService.generateVoiceResponse(
-          "Je n'ai pas pu comprendre ce que vous avez dit. Pourriez-vous répéter s'il vous plaît?",
-          {
-            gather: {
-              action: `/api/calls/${callId}/process-speech`,
-              prompt: "Pourriez-vous répéter s'il vous plaît?"
+    if (!speechResult) {
+      const noInputMessage = "Je n'ai pas pu comprendre ce que vous avez dit. Pourriez-vous répéter s'il vous plaît?";
+      
+      if (provider === 'twilio') {
+        const twilioService = require('../services/twilioService');
+        return res.status(200).send(
+          twilioService.generateTwiMLResponse(
+            noInputMessage,
+            {
+              gather: {
+                input: 'speech',
+                action: `/api/calls/${callId}/process-speech?provider=twilio`,
+                prompt: "Pourriez-vous répéter s'il vous plaît?"
+              }
             }
-          }
-        )
-      );
+          )
+        );
+      } else {
+        return res.status(200).json(
+          await fonosterService.generateVoiceResponse(
+            noInputMessage,
+            {
+              gather: {
+                action: `/api/calls/${callId}/process-speech`,
+                prompt: "Pourriez-vous répéter s'il vous plaît?"
+              }
+            }
+          )
+        );
+      }
     }
     
     // Récupérer l'appel et l'entreprise associée
     const call = await Call.findById(callId);
     if (!call) {
       logger.error(`Appel non trouvé: ${callId}`);
-      return res.status(404).json(
-        await fonosterService.generateVoiceResponse(
-          "Désolé, une erreur s'est produite. Veuillez réessayer plus tard."
-        )
-      );
+      
+      const errorMessage = "Désolé, une erreur s'est produite. Veuillez réessayer plus tard.";
+      
+      if (provider === 'twilio') {
+        const twilioService = require('../services/twilioService');
+        return res.status(404).send(
+          twilioService.generateTwiMLResponse(errorMessage)
+        );
+      } else {
+        return res.status(404).json(
+          await fonosterService.generateVoiceResponse(errorMessage)
+        );
+      }
     }
     
-    const company = await Company.findById(call.company).populate('voiceAssistant');
+    const company = await Company.findById(call.company);
     if (!company) {
       logger.error(`Entreprise non trouvée pour l'appel: ${callId}`);
-      return res.status(404).json(
-        await fonosterService.generateVoiceResponse(
-          "Désolé, une erreur s'est produite. Veuillez réessayer plus tard."
-        )
-      );
+      
+      const errorMessage = "Désolé, une erreur s'est produite. Veuillez réessayer plus tard.";
+      
+      if (provider === 'twilio') {
+        const twilioService = require('../services/twilioService');
+        return res.status(404).send(
+          twilioService.generateTwiMLResponse(errorMessage)
+        );
+      } else {
+        return res.status(404).json(
+          await fonosterService.generateVoiceResponse(errorMessage)
+        );
+      }
     }
     
     // Ajouter la transcription au transcript de l'appel
-    call.addToTranscript('client', SpeechResult);
+    call.addToTranscript('client', speechResult);
     await call.save();
     
     // Notifier les utilisateurs connectés de la mise à jour du transcript
@@ -153,141 +383,204 @@ exports.processSpeech = async (req, res) => {
       transcript: call.transcript
     });
     
-    // Vérifier si l'utilisateur demande explicitement un transfert
-    const needsTransfer = await openaiService.needsHumanTransfer(SpeechResult, company);
-    
-    if (needsTransfer) {
-      // Mettre à jour l'appel
-      call.transferredToHuman = true;
-      call.transferReason = 'demande-client';
-      call.status = 'transféré';
-      await call.save();
-      
-      // Notifier les utilisateurs connectés du transfert
-      io.to(`company-${company._id}`).emit('call-transferred', {
-        callId: call._id,
-        reason: 'demande-client'
-      });
-      
-      // Obtenir le message de transfert personnalisé
-      let transferMessage = "Je vais vous transférer à un conseiller qui pourra mieux vous aider.";
-      
-      if (company.voiceAssistant && company.voiceAssistant.prompts && company.voiceAssistant.prompts.transferPrompt) {
-        transferMessage = company.voiceAssistant.prompts.transferPrompt;
-        
-        // Remplacer les variables
-        transferMessage = transferMessage.replace(/{{companyName}}/g, company.name);
-      }
-      
-      // Générer la réponse vocale pour le transfert
-      return res.status(200).json(
-        await fonosterService.generateVoiceResponse(
-          transferMessage,
-          {
-            voice: company.voiceAssistant?.voice?.gender || 'female',
-            language: 'fr-FR',
-            redirect: company.transferSettings?.humanPhoneNumber
-          },
-          company
-        )
-      );
-    }
-    
-    // Vérifier s'il existe une réponse personnalisée
-    const customResponse = company.findCustomResponse(SpeechResult);
+    // Vérifier d'abord si une réponse personnalisée existe
+    const customResponse = company.findCustomResponse(speechResult);
     
     if (customResponse) {
+      logger.info(`Réponse personnalisée trouvée pour la requête: ${speechResult}`);
+      
       // Ajouter la réponse au transcript
       call.addToTranscript('lydia', customResponse);
       await call.save();
       
-      // Notifier les utilisateurs connectés de la mise à jour du transcript
+      // Notifier de la mise à jour
       io.to(`company-${company._id}`).emit('call-transcript-update', {
         callId: call._id,
         transcript: call.transcript
       });
       
-      // Générer la réponse vocale avec la réponse personnalisée
-      return res.status(200).json(
-        await fonosterService.generateVoiceResponse(
+      // Envoyer la réponse personnalisée selon le fournisseur
+      if (provider === 'twilio') {
+        const twilioService = require('../services/twilioService');
+        const voice = company.voiceAssistant?.voice?.gender === 'male' ? 'Polly.Mathieu' : 'Polly.Léa';
+        
+        return res.status(200).send(
+          twilioService.generateTwiMLResponse(
+            customResponse,
+            {
+              voice: voice,
+              gather: {
+                input: 'speech',
+                action: `/api/calls/${callId}/process-speech?provider=twilio`,
+                prompt: "Puis-je vous aider avec autre chose?"
+              }
+            }
+          )
+        );
+      } else {
+        const voiceResponse = await fonosterService.generateVoiceResponse(
           customResponse,
           {
-            voice: company.voiceAssistant?.voice?.gender || 'female',
-            language: 'fr-FR',
             gather: {
               action: `/api/calls/${callId}/process-speech`,
-              prompt: "Y a-t-il autre chose que je puisse faire pour vous?"
+              prompt: "Puis-je vous aider avec autre chose?"
             }
           },
           company
-        )
-      );
+        );
+        
+        return res.status(200).json(voiceResponse);
+      }
     }
     
-    // Détecter l'intention de l'utilisateur pour choisir le scénario approprié
-    const intentAnalysis = await openaiService.detectIntent(SpeechResult, company);
-    logger.info(`Intention détectée: ${intentAnalysis.primaryIntent}, scénario recommandé: ${intentAnalysis.recommendedScenario}`);
+    // Si pas de réponse personnalisée, utiliser l'IA pour générer une réponse
     
-    // Récupérer l'historique des conversations pour le contexte
-    const history = call.transcript.map(entry => ({
-      role: entry.speaker === 'client' ? 'user' : 'assistant',
-      content: entry.text
-    }));
+    // Construire le prompt pour l'IA
+    let systemPrompt = "Vous êtes un assistant vocal pour une entreprise. Soyez concis et précis dans vos réponses.";
     
-    // Générer une réponse avec OpenAI en utilisant le scénario recommandé si disponible
-    const aiResponseData = await openaiService.generateResponse(
-      SpeechResult,
-      company,
-      { history },
-      intentAnalysis.recommendedScenario
-    );
+    if (company.voiceAssistant && company.voiceAssistant.prompts && company.voiceAssistant.prompts.baseSystemPrompt) {
+      systemPrompt = company.voiceAssistant.prompts.baseSystemPrompt;
+      systemPrompt = systemPrompt.replace(/{{companyName}}/g, company.name);
+    }
     
-    // Extraire la réponse et les actions à partir de la réponse d'OpenAI
-    const aiResponse = aiResponseData.response;
-    const actions = aiResponseData.actions;
+    // Récupérer les derniers échanges pour le contexte (maximum 5)
+    const conversationHistory = call.transcript && call.transcript.length > 0 
+      ? call.transcript.slice(-10).map(entry => ({
+          role: entry.speaker === 'client' ? 'user' : 'assistant',
+          content: entry.text
+        }))
+      : [];
     
-    // Traiter les actions détectées
-    if (actions && actions.length > 0) {
-      logger.info(`Actions détectées dans la réponse: ${actions.join(', ')}`);
+    // Ajouter d'autres informations du contexte de l'entreprise si disponibles
+    let companyContext = "";
+    
+    if (company.voiceAssistant && company.voiceAssistant.companyInfo) {
+      if (company.voiceAssistant.companyInfo.products && company.voiceAssistant.companyInfo.products.length > 0) {
+        companyContext += "Produits: " + company.voiceAssistant.companyInfo.products.join(", ") + ". ";
+      }
       
-      // Stocker les actions dans les métadonnées de l'appel
-      if (!call.metadata) call.metadata = new Map();
-      call.metadata.set('detectedActions', actions.join(','));
-      call.metadata.set('lastScenario', intentAnalysis.recommendedScenario || 'default');
+      if (company.voiceAssistant.companyInfo.services && company.voiceAssistant.companyInfo.services.length > 0) {
+        companyContext += "Services: " + company.voiceAssistant.companyInfo.services.join(", ") + ". ";
+      }
+      
+      if (company.voiceAssistant.companyInfo.faq && company.voiceAssistant.companyInfo.faq.length > 0) {
+        companyContext += "FAQ: ";
+        company.voiceAssistant.companyInfo.faq.forEach(faqItem => {
+          companyContext += `Q: ${faqItem.question} R: ${faqItem.answer}. `;
+        });
+      }
     }
     
-    // Ajouter la réponse au transcript
-    call.addToTranscript('lydia', aiResponse);
-    await call.save();
+    if (companyContext) {
+      systemPrompt += `\n\nInformations sur l'entreprise: ${companyContext}`;
+    }
     
-    // Notifier les utilisateurs connectés de la mise à jour du transcript
-    io.to(`company-${company._id}`).emit('call-transcript-update', {
-      callId: call._id,
-      transcript: call.transcript
-    });
+    // Générer la réponse avec l'IA
+    try {
+      const aiResponse = await openaiService.generateChatCompletion({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...conversationHistory,
+          { role: 'user', content: speechResult }
+        ],
+        max_tokens: 150
+      });
+      
+      // Ajouter la réponse de l'IA au transcript
+      call.addToTranscript('lydia', aiResponse);
+      await call.save();
+      
+      // Notifier de la mise à jour
+      io.to(`company-${company._id}`).emit('call-transcript-update', {
+        callId: call._id,
+        transcript: call.transcript
+      });
+      
+      // Envoyer la réponse générée selon le fournisseur
+      if (provider === 'twilio') {
+        const twilioService = require('../services/twilioService');
+        const voice = company.voiceAssistant?.voice?.gender === 'male' ? 'Polly.Mathieu' : 'Polly.Léa';
+        
+        return res.status(200).send(
+          twilioService.generateTwiMLResponse(
+            aiResponse,
+            {
+              voice: voice,
+              gather: {
+                input: 'speech',
+                action: `/api/calls/${callId}/process-speech?provider=twilio`,
+                prompt: "Puis-je vous aider avec autre chose?"
+              }
+            }
+          )
+        );
+      } else {
+        const voiceResponse = await fonosterService.generateVoiceResponse(
+          aiResponse,
+          {
+            gather: {
+              action: `/api/calls/${callId}/process-speech`,
+              prompt: "Puis-je vous aider avec autre chose?"
+            }
+          },
+          company
+        );
+        
+        return res.status(200).json(voiceResponse);
+      }
+      
+    } catch (aiError) {
+      logger.error('Erreur lors de la génération de la réponse IA:', aiError);
+      
+      const fallbackResponse = "Je suis désolé, je ne peux pas répondre à cette question pour le moment. Puis-je vous aider avec autre chose?";
+      
+      // Ajouter la réponse de secours au transcript
+      call.addToTranscript('lydia', fallbackResponse);
+      await call.save();
+      
+      if (provider === 'twilio') {
+        const twilioService = require('../services/twilioService');
+        return res.status(200).send(
+          twilioService.generateTwiMLResponse(
+            fallbackResponse,
+            {
+              gather: {
+                input: 'speech',
+                action: `/api/calls/${callId}/process-speech?provider=twilio`
+              }
+            }
+          )
+        );
+      } else {
+        return res.status(200).json(
+          await fonosterService.generateVoiceResponse(
+            fallbackResponse,
+            {
+              gather: {
+                action: `/api/calls/${callId}/process-speech`
+              }
+            },
+            company
+          )
+        );
+      }
+    }
     
-    // Générer la réponse vocale avec la réponse générative
-    return res.status(200).json(
-      await fonosterService.generateVoiceResponse(
-        aiResponse,
-        {
-          voice: company.voiceAssistant?.voice?.gender || 'female',
-          language: 'fr-FR',
-          gather: {
-            action: `/api/calls/${callId}/process-speech`,
-            prompt: "Y a-t-il autre chose que je puisse faire pour vous?"
-          }
-        },
-        company
-      )
-    );
   } catch (error) {
     logger.error('Erreur lors du traitement de la parole:', error);
-    return res.status(500).json(
-      await fonosterService.generateVoiceResponse(
-        "Désolé, une erreur s'est produite. Veuillez réessayer plus tard."
-      )
-    );
+    
+    const errorMessage = "Désolé, une erreur s'est produite. Veuillez réessayer plus tard.";
+    
+    if (req.query.provider === 'twilio') {
+      const twilioService = require('../services/twilioService');
+      return res.status(500).send(
+        twilioService.generateTwiMLResponse(errorMessage)
+      );
+    } else {
+      return res.status(500).json(
+        await fonosterService.generateVoiceResponse(errorMessage)
+      );
+    }
   }
 };
 
@@ -750,68 +1043,275 @@ exports.updateCallStatus = async (req, res, next) => {
 };
 
 /**
- * Gérer les requêtes vocales spécifiques à Fonoster
+ * Obtenir des statistiques pour le tableau de bord des appels
  * @param {Object} req - Requête Express
  * @param {Object} res - Réponse Express
  */
-exports.handleVoiceRequest = async (req, res) => {
+exports.getCallDashboardStats = async (req, res) => {
   try {
-    const { callId, event } = req.body;
+    const { companyId } = req.params;
+    const { period = 'week' } = req.query;
     
-    // Logique différente selon l'événement
-    switch (event) {
-      case 'call.new':
-        // Un nouvel appel est arrivé
-        logger.info(`Nouvel appel Fonoster reçu: ${callId}`);
-        
-        // Générer une réponse vocale générique de bienvenue
-        return res.status(200).json(
-          fonosterService.generateVoiceResponse(
-            "Bienvenue chez Lydia. Comment puis-je vous aider aujourd'hui?",
-            {
-              gather: {
-                action: `/api/calls/process-speech?callId=${callId}`,
-                prompt: "Je suis à votre écoute."
-              }
-            }
-          )
-        );
-      
-      case 'call.bridged':
-        // L'appel a été transféré
-        logger.info(`Appel Fonoster transféré: ${callId}`);
-        return res.status(200).json({ status: 'ok' });
-      
-      case 'call.ended':
-        // L'appel est terminé
-        logger.info(`Appel Fonoster terminé: ${callId}`);
-        
-        // Mettre à jour le statut de l'appel dans la base de données
-        if (req.body.callRef) {
-          const call = await Call.findOne({ callSid: req.body.callRef });
-          if (call) {
-            call.status = 'terminé';
-            call.endTime = new Date();
-            if (call.startTime) {
-              call.duration = Math.round((call.endTime - call.startTime) / 1000);
-            }
-            await call.save();
-          }
-        }
-        
-        return res.status(200).json({ status: 'ok' });
-      
-      default:
-        // Événement non géré
-        logger.warn(`Événement Fonoster non géré: ${event}`);
-        return res.status(200).json({ status: 'ignored' });
+    const company = await Company.findById(companyId);
+    if (!company) {
+      return res.status(404).json({ message: 'Entreprise non trouvée' });
     }
-  } catch (error) {
-    logger.error('Erreur lors du traitement de la requête vocale:', error);
-    return res.status(500).json({
-      error: 'Erreur lors du traitement de la requête vocale',
-      details: error.message
+    
+    // Déterminer les dates de début et de fin en fonction de la période
+    const endDate = new Date();
+    let startDate = new Date();
+    
+    switch (period) {
+      case 'day':
+        startDate.setHours(0, 0, 0, 0);
+        break;
+      case 'week':
+        startDate.setDate(startDate.getDate() - 7);
+        break;
+      case 'month':
+        startDate.setMonth(startDate.getMonth() - 1);
+        break;
+      default:
+        startDate.setDate(startDate.getDate() - 7);
+    }
+    
+    // Tendance des appels par jour
+    const callsPerDayPipeline = [
+      {
+        $match: {
+          company: company._id,
+          startTime: { $gte: startDate, $lte: endDate }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$startTime' }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { _id: 1 }
+      },
+      {
+        $project: {
+          _id: 0,
+          date: '$_id',
+          count: 1
+        }
+      }
+    ];
+    
+    const callsPerDay = await Call.aggregate(callsPerDayPipeline);
+    
+    // Appels par statut
+    const callsByStatusPipeline = [
+      {
+        $match: {
+          company: company._id,
+          startTime: { $gte: startDate, $lte: endDate }
+        }
+      },
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 }
+        }
+      }
+    ];
+    
+    const callsByStatus = await Call.aggregate(callsByStatusPipeline);
+    
+    // Formater les résultats
+    const statusMap = {
+      'en-attente': 'En attente',
+      'en-cours': 'En cours',
+      'terminé': 'Terminé',
+      'manqué': 'Manqué',
+      'transféré': 'Transféré'
+    };
+    
+    const formattedCallsByStatus = callsByStatus.map(item => ({
+      status: statusMap[item._id] || item._id,
+      count: item.count
+    }));
+    
+    // Appels par direction (entrant/sortant)
+    const callsByDirectionPipeline = [
+      {
+        $match: {
+          company: company._id,
+          startTime: { $gte: startDate, $lte: endDate }
+        }
+      },
+      {
+        $group: {
+          _id: '$direction',
+          count: { $sum: 1 }
+        }
+      }
+    ];
+    
+    const callsByDirection = await Call.aggregate(callsByDirectionPipeline);
+    
+    const directionMap = {
+      'inbound': 'Entrant',
+      'outbound': 'Sortant'
+    };
+    
+    const formattedCallsByDirection = callsByDirection.map(item => ({
+      direction: directionMap[item._id] || item._id,
+      count: item.count
+    }));
+    
+    // Durée moyenne des appels par jour
+    const avgDurationPerDayPipeline = [
+      {
+        $match: {
+          company: company._id,
+          startTime: { $gte: startDate, $lte: endDate },
+          duration: { $gt: 0 }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$startTime' }
+          },
+          avgDuration: { $avg: '$duration' }
+        }
+      },
+      {
+        $sort: { _id: 1 }
+      },
+      {
+        $project: {
+          _id: 0,
+          date: '$_id',
+          avgDuration: { $round: ['$avgDuration', 0] }
+        }
+      }
+    ];
+    
+    const avgDurationPerDay = await Call.aggregate(avgDurationPerDayPipeline);
+    
+    return res.status(200).json({
+      callsPerDay,
+      callsByStatus: formattedCallsByStatus,
+      callsByDirection: formattedCallsByDirection,
+      avgDurationPerDay
     });
+  } catch (error) {
+    logger.error('Erreur lors de la récupération des statistiques du tableau de bord:', error);
+    return res.status(500).json({ message: 'Erreur lors de la récupération des statistiques du tableau de bord' });
+  }
+};
+
+/**
+ * Traiter les notifications d'état des appels Twilio
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
+exports.handleTwilioStatusCallback = async (req, res) => {
+  try {
+    const { CallSid, CallStatus, From, To } = req.body;
+    logger.info(`Notification de statut Twilio reçue: ${CallStatus} pour ${CallSid}`);
+    
+    // Rechercher l'appel correspondant
+    const call = await Call.findOne({ callSid: CallSid });
+    
+    if (!call) {
+      logger.warn(`Aucun appel trouvé pour le CallSid: ${CallSid}`);
+      return res.status(200).send(); // Twilio attend une réponse 200 même en cas d'erreur
+    }
+    
+    // Mettre à jour le statut de l'appel
+    const previousStatus = call.status;
+    call.status = mapTwilioStatusToInternalStatus(CallStatus);
+    
+    // Si l'appel est terminé, définir l'heure de fin
+    if (['completed', 'busy', 'failed', 'no-answer', 'canceled'].includes(CallStatus)) {
+      call.endTime = new Date();
+      call.duration = Math.round((call.endTime - call.startTime) / 1000); // en secondes
+    }
+    
+    await call.save();
+    
+    // Notifier les utilisateurs connectés via Socket.io du changement de statut
+    io.to(`company-${call.company}`).emit('call-status-update', {
+      callId: call._id,
+      previousStatus,
+      newStatus: call.status,
+      updatedAt: new Date()
+    });
+    
+    return res.status(200).send();
+  } catch (error) {
+    logger.error('Erreur lors du traitement de la notification de statut Twilio:', error);
+    return res.status(200).send(); // Toujours renvoyer 200 pour Twilio
+  }
+};
+
+/**
+ * Mapper les statuts Twilio aux statuts internes
+ * @param {string} twilioStatus - Statut Twilio
+ * @returns {string} - Statut interne
+ */
+function mapTwilioStatusToInternalStatus(twilioStatus) {
+  const statusMap = {
+    'queued': 'queued',
+    'ringing': 'ringing',
+    'in-progress': 'in-progress',
+    'completed': 'completed',
+    'busy': 'failed',
+    'failed': 'failed',
+    'no-answer': 'no-answer',
+    'canceled': 'canceled'
+  };
+  
+  return statusMap[twilioStatus] || 'unknown';
+}
+
+/**
+ * Gérer les notifications d'enregistrement Twilio
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
+exports.handleRecordingStatus = async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    const { RecordingSid, RecordingUrl, RecordingStatus, CallSid } = req.body;
+    
+    logger.info(`Notification d'enregistrement reçue: ${RecordingStatus} pour ${CallSid}`);
+    
+    // Rechercher l'appel correspondant
+    const call = await Call.findOne({ callSid: CallSid });
+    
+    if (!call) {
+      logger.warn(`Aucun appel trouvé pour le CallSid: ${CallSid}`);
+      return res.status(200).send(); // Twilio attend une réponse 200 même en cas d'erreur
+    }
+    
+    // Si l'enregistrement est terminé
+    if (RecordingStatus === 'completed' && RecordingUrl) {
+      call.recordingUrl = RecordingUrl;
+      call.recordingSid = RecordingSid;
+      await call.save();
+      
+      // Notifier les utilisateurs connectés
+      io.to(`company-${companyId}`).emit('recording-available', {
+        callId: call._id,
+        recordingUrl: RecordingUrl
+      });
+      
+      logger.info(`Enregistrement disponible pour l'appel ${call._id}: ${RecordingUrl}`);
+    }
+    
+    return res.status(200).send();
+  } catch (error) {
+    logger.error('Erreur lors du traitement de la notification d\'enregistrement:', error);
+    return res.status(200).send(); // Toujours renvoyer 200 pour Twilio
   }
 };
 

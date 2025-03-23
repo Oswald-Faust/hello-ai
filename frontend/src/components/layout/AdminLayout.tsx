@@ -17,7 +17,8 @@ import {
   ChevronDown,
   HelpCircle,
   Shield,
-  Search
+  Search,
+  Database
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -50,6 +51,11 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       name: 'Entreprises', 
       href: '/dashboard/admin/companies', 
       icon: Building2 
+    },
+    {
+      name: 'Modèles',
+      href: '/dashboard/admin/modeles',
+      icon: Database
     },
     { 
       name: 'Rapports', 
@@ -230,6 +236,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 {router.pathname === '/dashboard/admin' && 'Tableau de bord'}
                 {router.pathname === '/dashboard/admin/users' && 'Gestion des utilisateurs'}
                 {router.pathname === '/dashboard/admin/companies' && 'Gestion des entreprises'}
+                {router.pathname === '/dashboard/admin/modeles' && 'Gestion des modèles'}
                 {router.pathname === '/dashboard/admin/reports' && 'Rapports'}
                 {router.pathname === '/dashboard/admin/stats' && 'Statistiques'}
                 {router.pathname === '/dashboard/admin/settings' && 'Paramètres'}
