@@ -27,6 +27,14 @@ class ConversationService {
         throw new Error(`Variables manquantes: ${validationResult.missing.join(', ')}`);
       }
       
+      // Récupérer l'entreprise associée pour les messages d'accueil
+      const company = await config.getCompany();
+      const greetings = company?.voiceAssistant?.prompts?.greetings || {
+        main: "Bonjour, comment puis-je vous aider ?",
+        outOfHours: "Nous sommes actuellement fermés. Merci de rappeler pendant nos heures d'ouverture.",
+        waiting: "Un instant s'il vous plaît, je traite votre demande."
+      };
+      
       // Préparer le contexte enrichi
       const enrichedContext = {
         conversationType: config.conversationType,
@@ -35,6 +43,7 @@ class ConversationService {
         aiSettings: { ...config.aiSettings },
         systemPrompt: config.generateSystemPrompt(),
         variables: { ...initialContext },
+        greetings, // Ajouter les messages d'accueil au contexte
         pdfContent: [],
         contextParameters: { ...config.contextParameters }
       };
@@ -55,6 +64,17 @@ class ConversationService {
           }
         }
       }
+      
+      // Ajouter des instructions spécifiques pour l'utilisation des messages d'accueil
+      enrichedContext.systemPrompt += `\n\nMessages d'accueil à utiliser:
+- Message principal: "${greetings.main}"
+- Message hors heures: "${greetings.outOfHours}"
+- Message d'attente: "${greetings.waiting}"
+
+Instructions pour l'utilisation des messages:
+1. Utilisez le message principal pour commencer la conversation
+2. Utilisez le message hors heures si l'appel est en dehors des heures d'ouverture
+3. Utilisez le message d'attente lors du traitement d'une demande complexe`;
       
       return enrichedContext;
     } catch (error) {

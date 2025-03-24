@@ -7,8 +7,10 @@ const { Title, Text } = Typography;
 
 // Types pour les configurations de voix
 interface VoiceConfig {
-  provider: 'playht' | 'fishaudio';
-  voiceId?: string;
+  provider: 'gtts';
+  voiceId: string;
+  gender: 'male' | 'female';
+  language: string;
   speed?: number;
   format?: string;
 }
@@ -16,9 +18,10 @@ interface VoiceConfig {
 interface Voice {
   id: string;
   name: string;
-  gender?: string;
+  gender: 'male' | 'female';
+  language: string;
+  provider: string;
   description?: string;
-  language?: string;
 }
 
 /**
@@ -26,46 +29,26 @@ interface Voice {
  */
 const VoiceDemo: React.FC = () => {
   const [loading, setLoading] = useState(false);
-  const [voiceProvider, setVoiceProvider] = useState<'playht' | 'fishaudio'>('playht');
   const [voices, setVoices] = useState<Voice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<string>('');
   const [text, setText] = useState<string>("Bonjour, je suis une voix générée par l'IA. Merci d'utiliser notre service.");
   const [audioUrl, setAudioUrl] = useState<string>('');
   const [loadingVoices, setLoadingVoices] = useState(false);
+  const [gender, setGender] = useState<'male' | 'female'>('female');
 
   // Charger les voix recommandées
   useEffect(() => {
-    const recommendedVoices = voiceService.getRecommendedFrenchVoices(voiceProvider);
-    setVoices(recommendedVoices);
+    const recommendedVoices = voiceService.getRecommendedVoices();
+    setVoices(recommendedVoices as Voice[]);
     
     if (recommendedVoices.length > 0) {
-      setSelectedVoice(recommendedVoices[0].id);
+      const firstVoice = recommendedVoices[0];
+      setSelectedVoice(firstVoice.id);
+      if (firstVoice.gender === 'male' || firstVoice.gender === 'female') {
+        setGender(firstVoice.gender);
+      }
     }
-  }, [voiceProvider]);
-
-  // Charger la liste complète des voix disponibles
-  const loadAllVoices = async () => {
-    try {
-      setLoadingVoices(true);
-      const allVoices = await voiceService.getAvailableVoices(voiceProvider);
-      
-      // Filtrer pour les voix françaises uniquement
-      const frenchVoices = allVoices.filter((voice: Voice) => 
-        voice.language?.includes('fr') || 
-        voice.name?.includes('fr') || 
-        voice.description?.includes('français') ||
-        voice.description?.includes('French')
-      );
-      
-      setVoices(frenchVoices);
-      message.success(`${frenchVoices.length} voix françaises trouvées`);
-    } catch (error) {
-      console.error('Erreur lors du chargement des voix:', error);
-      message.error('Erreur lors du chargement des voix');
-    } finally {
-      setLoadingVoices(false);
-    }
-  };
+  }, []);
 
   // Générer l'audio
   const generateAudio = async () => {
@@ -77,16 +60,22 @@ const VoiceDemo: React.FC = () => {
     try {
       setLoading(true);
       const voiceConfig: VoiceConfig = {
-        provider: voiceProvider,
+        provider: 'gtts',
         voiceId: selectedVoice,
+        gender: gender,
+        language: 'fr',
         speed: 1.0,
         format: 'mp3'
       };
       
-      const url = await voiceService.testVoice(text, voiceConfig);
+      const response = await voiceService.testVoice(text, voiceConfig);
       
-      setAudioUrl(url);
-      message.success('Audio généré avec succès');
+      if (response.success && response.audioUrl) {
+        setAudioUrl(response.audioUrl);
+        message.success('Audio généré avec succès');
+      } else {
+        throw new Error(response.message || 'Erreur lors de la génération audio');
+      }
     } catch (error) {
       console.error('Erreur lors de la génération audio:', error);
       message.error('Erreur lors de la génération audio');
@@ -99,44 +88,20 @@ const VoiceDemo: React.FC = () => {
     <Card title="Démo - Synthèse Vocale" style={{ maxWidth: 800, margin: '0 auto' }}>
       <Space direction="vertical" style={{ width: '100%' }} size="large">
         <div>
-          <Title level={5}>1. Choisissez un fournisseur</Title>
+          <Title level={5}>1. Choisissez le genre de la voix</Title>
           <Select
-            value={voiceProvider}
-            onChange={(value: 'playht' | 'fishaudio') => setVoiceProvider(value)}
+            value={gender}
+            onChange={(value: 'male' | 'female') => setGender(value)}
             style={{ width: '100%' }}
             options={[
-              { label: 'PlayHT (Gratuit)', value: 'playht' },
-              { label: 'Fish Audio (Payant)', value: 'fishaudio' }
+              { label: 'Voix féminine', value: 'female' },
+              { label: 'Voix masculine', value: 'male' }
             ]}
           />
         </div>
 
         <div>
-          <Title level={5}>2. Sélectionnez une voix</Title>
-          <Space direction="vertical" style={{ width: '100%' }}>
-            <Select
-              placeholder="Sélectionnez une voix"
-              value={selectedVoice}
-              onChange={setSelectedVoice}
-              style={{ width: '100%' }}
-              options={voices.map(voice => ({
-                label: voice.name || voice.id,
-                value: voice.id
-              }))}
-              loading={loadingVoices}
-            />
-            <Button 
-              onClick={loadAllVoices} 
-              loading={loadingVoices}
-              type="link"
-            >
-              Charger toutes les voix disponibles
-            </Button>
-          </Space>
-        </div>
-
-        <div>
-          <Title level={5}>3. Entrez votre texte</Title>
+          <Title level={5}>2. Entrez votre texte</Title>
           <TextArea
             value={text}
             onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setText(e.target.value)}

@@ -44,12 +44,10 @@ import { Loader2 } from 'lucide-react';
 interface VoiceAssistantUpdate {
   voice?: {
     gender: 'male' | 'female';
-    accent: string;
+    language: string;
     speed: number;
-    pitch: number;
-    provider: 'fishaudio' | 'fonoster' | 'twilio' | 'custom' | 'gtts';
-    voiceId: string;
-    format: 'mp3' | 'wav' | 'ogg';
+    provider: 'gtts';
+    format: 'mp3';
   };
   greetings?: {
     main: string;
@@ -74,12 +72,10 @@ interface VoiceAssistantUpdate {
 interface ExtendedVoiceAssistant {
   voice?: {
     gender: 'male' | 'female';
-    accent: string;
+    language: string;
     speed: number;
-    pitch: number;
-    provider: 'fishaudio' | 'fonoster' | 'twilio' | 'custom' | 'gtts';
-    voiceId: string;
-    format: 'mp3' | 'wav' | 'ogg';
+    provider: 'gtts';
+    format: 'mp3';
   };
   greetings?: {
     main: string;
@@ -105,16 +101,42 @@ type ExtendedCompany = Omit<Company, 'voiceAssistant'> & {
   voiceAssistant?: ExtendedVoiceAssistant;
 };
 
+// Mettre à jour le type VoiceSettingsFormValues pour inclure voiceId
+interface VoiceSettingsFormValues {
+  voice: {
+    gender: 'male' | 'female';
+    language: string;
+    speed: number;
+    provider: 'gtts';
+    format: 'mp3';
+    voiceId?: string;
+  };
+  greetings: {
+    main: string;
+    outOfHours?: string;
+    waiting?: string;
+  };
+  scenarios: {
+    information?: string;
+    transfer?: string;
+    ending?: string;
+  };
+  companyInfo: {
+    products?: string[];
+    services?: string[];
+    faq?: Array<{ question: string; answer: string }>;
+    team?: Array<{ name: string; role: string; expertise: string[] }>;
+  };
+}
+
 // Schéma de validation pour le formulaire
 const voiceSettingsSchema = z.object({
   voice: z.object({
     gender: z.enum(['male', 'female']),
-    accent: z.string().min(1, { message: 'Veuillez sélectionner un accent' }),
+    language: z.string().min(1, { message: 'Veuillez sélectionner une langue' }),
     speed: z.number().min(0.5).max(2),
-    pitch: z.number().min(0.5).max(2),
-    provider: z.enum(['fishaudio', 'fonoster', 'twilio', 'custom', 'gtts']),
-    voiceId: z.string().min(1, { message: 'Veuillez sélectionner une voix' }),
-    format: z.enum(['mp3', 'wav', 'ogg']),
+    provider: z.literal('gtts'),
+    format: z.literal('mp3'),
   }),
   greetings: z.object({
     main: z.string().min(1, { message: 'Veuillez fournir un message d\'accueil' }),
@@ -162,6 +184,7 @@ const VoiceSettingsPage: NextPage = () => {
   const [loadingVoices, setLoadingVoices] = useState<boolean>(false);
   const [testAudioUrl, setTestAudioUrl] = useState<string | null>(null);
   const [isTestingVoice, setIsTestingVoice] = useState<boolean>(false);
+  const [testText, setTestText] = useState<string>("Bonjour, je suis Lydia, l'assistant vocal intelligent de votre entreprise. Comment puis-je vous aider aujourd'hui?");
   
   // Mettre à jour l'onglet actif en fonction du paramètre d'URL
   useEffect(() => {
@@ -189,12 +212,10 @@ const VoiceSettingsPage: NextPage = () => {
   const defaultValues: VoiceSettingsFormValues = {
     voice: {
       gender: company?.voiceAssistant?.voice?.gender || 'female',
-      accent: company?.voiceAssistant?.voice?.accent || 'french',
+      language: company?.voiceAssistant?.voice?.language || 'fr',
       speed: company?.voiceAssistant?.voice?.speed || 1.0,
-      pitch: company?.voiceAssistant?.voice?.pitch || 1.0,
-      provider: company?.voiceAssistant?.voice?.provider || 'fonoster',
-      voiceId: company?.voiceAssistant?.voice?.voiceId || 'fr_female_1',
-      format: company?.voiceAssistant?.voice?.format || 'mp3',
+      provider: 'gtts',
+      format: 'mp3',
     },
     greetings: {
       main: company?.voiceAssistant?.greetings?.main || '',
@@ -222,16 +243,14 @@ const VoiceSettingsPage: NextPage = () => {
 
   // Mettre à jour les valeurs par défaut lorsque les données de l'entreprise sont chargées
   useEffect(() => {
-    if (company?.voiceAssistant?.voice) {
+    if (company?.voiceAssistant) {
       form.reset({
         voice: {
-          gender: company.voiceAssistant.voice.gender || 'female',
-          accent: company.voiceAssistant.voice.accent || 'french',
-          speed: company.voiceAssistant.voice.speed || 1.0,
-          pitch: company.voiceAssistant.voice.pitch || 1.0,
-          provider: company.voiceAssistant.voice.provider || 'fonoster',
-          voiceId: company.voiceAssistant.voice.voiceId || 'fr_female_1',
-          format: company.voiceAssistant.voice.format || 'mp3',
+          gender: company.voiceAssistant.voice?.gender || 'female',
+          language: company.voiceAssistant.voice?.language || 'fr',
+          speed: company.voiceAssistant.voice?.speed || 1.0,
+          provider: 'gtts',
+          format: 'mp3',
         },
         greetings: {
           main: company.voiceAssistant.greetings?.main || '',
@@ -295,37 +314,42 @@ const VoiceSettingsPage: NextPage = () => {
         if (isMounted) setLoadingVoices(true);
         
         // Utilisez d'abord les voix recommandées comme fallback pour éviter un état vide
-        if (provider === 'fonoster' || provider === 'playht' || provider === 'gtts') {
-          setVoices(voiceService.getRecommendedFrenchVoices(provider) as Voice[]);
+        if (provider === 'gtts') {
+          const recommendedVoices = voiceService.getRecommendedVoices() as Voice[];
+          setVoices(recommendedVoices);
+          setLoadingVoices(false);
+          return;
         }
         
-        // Ensuite, essayez de charger les voix depuis l'API avec un délai réduit
-        const response = await Promise.race([
-          voiceService.getAvailableVoices(provider),
-          new Promise<Voice[]>((_, reject) => 
-            setTimeout(() => reject(new Error('Délai dépassé')), 5000)
-          )
-        ]) as Voice[];
-        
-        if (isMounted) {
-          setVoices(response || []);
-          setLoadingVoices(false);
+        try {
+          // Essayez de charger les voix depuis l'API avec un délai réduit
+          const response = await Promise.race([
+            voiceService.getAvailableVoices(provider),
+            new Promise<Voice[]>((_, reject) => 
+              setTimeout(() => reject(new Error('Délai dépassé')), 5000)
+            )
+          ]) as Voice[];
+          
+          if (isMounted) {
+            setVoices(response || []);
+            setLoadingVoices(false);
+          }
+        } catch (error) {
+          if (isMounted) {
+            // En cas d'erreur, utilisez les voix recommandées comme fallback
+            const fallbackVoices = voiceService.getRecommendedVoices() as Voice[];
+            setVoices(fallbackVoices);
+            setLoadingVoices(false);
+            
+            toast({
+              title: 'Note',
+              description: 'Nous utilisons une sélection de voix recommandées suite à un problème de connexion.',
+              variant: 'default',
+            });
+          }
         }
       } catch (error) {
         console.error('Erreur lors du chargement des voix:', error);
-        
-        if (isMounted) {
-          // En cas d'erreur, utilisez les voix recommandées comme fallback
-          const fallbackVoices = voiceService.getRecommendedFrenchVoices(provider) as Voice[];
-          setVoices(fallbackVoices);
-          setLoadingVoices(false);
-          
-          toast({
-            title: 'Note',
-            description: 'Nous utilisons une sélection de voix recommandées suite à un problème de connexion.',
-            variant: 'default',
-          });
-        }
       } finally {
         isLoading = false;
       }
@@ -393,23 +417,16 @@ const VoiceSettingsPage: NextPage = () => {
       console.log("Test de voix avec configuration:", values.voice);
       
       const response = await voiceService.testVoice(
-        "Bonjour, je suis Lydia, l'assistant vocal intelligent de votre entreprise. Comment puis-je vous aider aujourd'hui?",
+        testText,
         values.voice
       );
       
       console.log("Réponse du test de voix:", response);
       
-      if (response && response.audioUrl) {
-        // S'assurer que l'URL commence par http:// ou / pour être valide
-        let audioUrl = response.audioUrl;
-        
-        // Si c'est un chemin relatif, construire l'URL complète
-        if (!audioUrl.startsWith('http')) {
-          const baseUrl = window.location.origin;
-          audioUrl = `${baseUrl}${audioUrl.startsWith('/') ? '' : '/'}${audioUrl}`;
-        }
-          
-        console.log("URL audio générée:", audioUrl);
+      if (response && response.success && response.audioUrl) {
+        // Utiliser le service voix pour construire l'URL
+        const audioUrl = voiceService.getAudioUrl(response.audioUrl);
+        console.log("URL audio finale:", audioUrl);
         setTestAudioUrl(audioUrl);
         
         toast({
@@ -570,7 +587,8 @@ const VoiceSettingsPage: NextPage = () => {
       case 'voice':
         // Vérifier que les paramètres de voix sont complets
         isValid = !!(values.voice.gender && 
-                    values.voice.accent && 
+                    values.voice.language && 
+                    values.voice.speed && 
                     values.voice.provider && 
                     values.voice.voiceId);
         if (!isValid) {
@@ -719,10 +737,39 @@ const VoiceSettingsPage: NextPage = () => {
               type="button" 
               variant="default"
               className="bg-green-600 hover:bg-green-700 text-white"
-              onClick={goToNextStep}
+              onClick={async () => {
+                try {
+                  // Sauvegarder les paramètres actuels
+                  await onSubmit(form.getValues());
+                  
+                  // Passer à l'étape suivante (Messages d'accueil)
+                  setActiveTab('greeting');
+                  router.push({ query: { ...router.query, step: 'greeting' } });
+                  
+                  toast({
+                    title: 'Configuration sauvegardée',
+                    description: 'Vos paramètres de voix ont été enregistrés. Vous pouvez maintenant configurer vos messages d\'accueil.',
+                    variant: 'success',
+                  });
+                } catch (error) {
+                  console.error('Erreur lors de la sauvegarde:', error);
+                  toast({
+                    title: 'Erreur',
+                    description: 'Une erreur est survenue lors de la sauvegarde. Veuillez réessayer.',
+                    variant: 'destructive',
+                  });
+                }
+              }}
               disabled={isSaving}
             >
-              Valider pour passer aux étapes suivantes
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sauvegarde...
+                </>
+              ) : (
+                'Valider pour passer aux étapes suivantes'
+              )}
             </Button>
           )}
           
@@ -822,17 +869,17 @@ const VoiceSettingsPage: NextPage = () => {
 
                         <FormField
                           control={form.control}
-                          name="voice.accent"
+                          name="voice.language"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Accent</FormLabel>
+                              <FormLabel>Langue</FormLabel>
                               <Select
                                 onValueChange={field.onChange}
                                 defaultValue={field.value}
                               >
                                 <FormControl>
                                   <SelectTrigger>
-                                    <SelectValue placeholder="Sélectionnez un accent" />
+                                    <SelectValue placeholder="Sélectionnez une langue" />
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
@@ -844,7 +891,7 @@ const VoiceSettingsPage: NextPage = () => {
                                 </SelectContent>
                               </Select>
                               <FormDescription>
-                                L'accent influence la prononciation des mots.
+                                La langue influence la prononciation des mots.
                               </FormDescription>
                               <FormMessage />
                             </FormItem>
@@ -876,39 +923,12 @@ const VoiceSettingsPage: NextPage = () => {
 
                         <FormField
                           control={form.control}
-                          name="voice.pitch"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Hauteur de la voix: {field.value}x</FormLabel>
-                              <FormControl>
-                                <Slider
-                                  value={[field.value]}
-                                  min={0.5}
-                                  max={2.0}
-                                  step={0.1}
-                                  onValueChange={(values) => field.onChange(values[0])}
-                                />
-                              </FormControl>
-                              <FormDescription>
-                                Ajustez la hauteur de la voix de Lydia (0.5x à 2.0x).
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
                           name="voice.provider"
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Fournisseur de voix</FormLabel>
                               <Select
-                                onValueChange={(value) => {
-                                  field.onChange(value);
-                                  // Réinitialiser voiceId lorsque le fournisseur change
-                                  form.setValue('voice.voiceId', '');
-                                }}
+                                onValueChange={field.onChange}
                                 defaultValue={field.value}
                               >
                                 <FormControl>
@@ -918,10 +938,6 @@ const VoiceSettingsPage: NextPage = () => {
                                 </FormControl>
                                 <SelectContent>
                                   <SelectItem value="gtts">gTTS (Gratuit)</SelectItem>
-                                  <SelectItem value="fishaudio">Fish Audio</SelectItem>
-                                  <SelectItem value="fonoster">Fonoster</SelectItem>
-                                  <SelectItem value="twilio">Twilio</SelectItem>
-                                  <SelectItem value="custom">Personnalisé</SelectItem>
                                 </SelectContent>
                               </Select>
                               <FormDescription>
@@ -963,6 +979,47 @@ const VoiceSettingsPage: NextPage = () => {
                             </FormItem>
                           )}
                         />
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Test de la voix</CardTitle>
+                        <CardDescription>
+                          Testez la configuration de voix avec votre propre texte
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                          <FormLabel>Texte à tester</FormLabel>
+                          <textarea 
+                            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                            value={testText}
+                            onChange={(e) => setTestText(e.target.value)}
+                            placeholder="Entrez le texte que vous souhaitez tester..."
+                          />
+                          <FormDescription>
+                            Entrez le texte que vous souhaitez entendre avec la voix configurée.
+                          </FormDescription>
+                        </div>
+
+                        <div className="flex justify-end space-x-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleTestVoice}
+                            disabled={isTestingVoice || !testText.trim()}
+                          >
+                            {isTestingVoice ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Test en cours...
+                              </>
+                            ) : (
+                              'Tester la voix'
+                            )}
+                          </Button>
+                        </div>
                       </CardContent>
                     </Card>
 
@@ -1019,9 +1076,39 @@ const VoiceSettingsPage: NextPage = () => {
                               type="button"
                               variant="default"
                               className="bg-green-600 hover:bg-green-700 text-white"
-                              onClick={goToNextStep}
+                              onClick={async () => {
+                                try {
+                                  // Sauvegarder les paramètres actuels
+                                  await onSubmit(form.getValues());
+                                  
+                                  // Passer à l'étape suivante (Messages d'accueil)
+                                  setActiveTab('greeting');
+                                  router.push({ query: { ...router.query, step: 'greeting' } });
+                                  
+                                  toast({
+                                    title: 'Configuration sauvegardée',
+                                    description: 'Vos paramètres de voix ont été enregistrés. Vous pouvez maintenant configurer vos messages d\'accueil.',
+                                    variant: 'success',
+                                  });
+                                } catch (error) {
+                                  console.error('Erreur lors de la sauvegarde:', error);
+                                  toast({
+                                    title: 'Erreur',
+                                    description: 'Une erreur est survenue lors de la sauvegarde. Veuillez réessayer.',
+                                    variant: 'destructive',
+                                  });
+                                }
+                              }}
+                              disabled={isSaving}
                             >
-                              Valider pour passer aux étapes suivantes
+                              {isSaving ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Sauvegarde...
+                                </>
+                              ) : (
+                                'Valider pour passer aux étapes suivantes'
+                              )}
                             </Button>
                           </div>
                         </CardContent>

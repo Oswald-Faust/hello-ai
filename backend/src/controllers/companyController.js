@@ -732,17 +732,40 @@ exports.updateVoiceAssistantPrompts = async (req, res) => {
     // Si voiceAssistant n'existe pas, l'initialiser
     if (!company.voiceAssistant) {
       company.voiceAssistant = {
-        prompts: {},
+        prompts: {
+          greetings: {
+            main: '',
+            outOfHours: '',
+            waiting: ''
+          }
+        },
         companyInfo: {},
         voice: {}
       };
     }
     
-    // Mettre à jour les prompts
+    // Validation spécifique pour les messages d'accueil
+    if (updates.greetings) {
+      // Vérifier que le message principal est fourni
+      if (updates.greetings.main === undefined || updates.greetings.main.trim() === '') {
+        return res.status(400).json(errorResponse('Le message d\'accueil principal est requis'));
+      }
+
+      // Mettre à jour les messages d'accueil
+      company.voiceAssistant.prompts.greetings = {
+        ...company.voiceAssistant.prompts.greetings,
+        main: updates.greetings.main,
+        outOfHours: updates.greetings.outOfHours || company.voiceAssistant.prompts.greetings?.outOfHours || '',
+        waiting: updates.greetings.waiting || company.voiceAssistant.prompts.greetings?.waiting || ''
+      };
+    }
+    
+    // Mettre à jour les autres prompts
     if (updates.prompts) {
       company.voiceAssistant.prompts = {
         ...company.voiceAssistant.prompts,
-        ...updates.prompts
+        ...updates.prompts,
+        greetings: company.voiceAssistant.prompts.greetings // Préserver les messages d'accueil
       };
     }
     
@@ -764,6 +787,13 @@ exports.updateVoiceAssistantPrompts = async (req, res) => {
     
     // Sauvegarder les modifications
     await company.save();
+
+    // Log pour le suivi
+    logger.info(`Messages d'accueil mis à jour pour l'entreprise ${company.name}:`, {
+      mainGreeting: company.voiceAssistant.prompts.greetings.main,
+      hasOutOfHours: !!company.voiceAssistant.prompts.greetings.outOfHours,
+      hasWaiting: !!company.voiceAssistant.prompts.greetings.waiting
+    });
     
     res.status(200).json(successResponse('Prompts de l\'assistant vocal mis à jour avec succès', company.voiceAssistant));
   } catch (error) {

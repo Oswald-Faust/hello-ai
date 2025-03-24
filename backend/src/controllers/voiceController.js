@@ -51,20 +51,27 @@ const upload = multer({
  */
 const getAvailableVoicesController = async (req, res) => {
   try {
-    // Utiliser gTTS par défaut, sauf si un autre fournisseur est spécifié
-    const provider = req.query.provider || 'gtts';
-    
-    logger.info(`Récupération des voix disponibles pour le fournisseur: ${provider}`);
-    const voices = await voiceService.getAvailableVoices(provider);
+    // Retourner uniquement les voix gTTS
+    const voices = [
+      {
+        id: 'fr',
+        name: 'Voix française féminine',
+        gender: 'female',
+        language: 'fr',
+        provider: 'gtts'
+      },
+      {
+        id: 'fr',
+        name: 'Voix française masculine',
+        gender: 'male',
+        language: 'fr',
+        provider: 'gtts'
+      }
+    ];
     
     return successResponse(res, 200, 'Voix récupérées avec succès', voices);
   } catch (error) {
     logger.error('Erreur lors de la récupération des voix disponibles:', error);
-    
-    if (error.message && error.message.includes('non configurée')) {
-      return errorResponse(res, 403, 'Clés API non configurées. Utilisez gTTS pour un service gratuit.');
-    }
-    
     return errorResponse(res, 500, error.message || 'Erreur lors de la récupération des voix');
   }
 };
@@ -143,34 +150,28 @@ const testVoiceGenerationController = async (req, res) => {
       return validationErrorResponse(res, 'Le texte à convertir est requis');
     }
     
-    // Valeurs par défaut pour les tests
-    const voiceConfig = {
-      provider: voice?.provider || 'gtts',
-      voiceId: voice?.voiceId,
-      language: voice?.language || 'fr',
-      speed: voice?.speed || 1.0,
-      pitch: voice?.pitch || 1.0,
-      format: voice?.format || 'mp3'
-    };
+    // Générer un nom de fichier unique
+    const fileName = `${uuidv4()}.mp3`;
+    const filePath = path.join(AUDIO_CACHE_DIR, fileName);
     
-    logger.info(`Test de génération audio pour: "${text.substring(0, 50)}..." avec config:`, voiceConfig);
-    const audioFilePath = await voiceService.generateAudio(text, voiceConfig);
+    // Générer l'audio avec gTTS
+    await new Promise((resolve, reject) => {
+      gtts.save(filePath, text, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
     
-    // Calcul du nom de fichier pour l'URL
-    const filename = path.basename(audioFilePath);
-    const downloadUrl = `${req.protocol}://${req.get('host')}/api/voices/download/${filename}`;
+    // Construire l'URL de téléchargement
+    const downloadUrl = `/voices/download/${fileName}`;
     
     return successResponse(res, 200, 'Audio généré avec succès', { 
-      audioFilePath,
-      downloadUrl 
+      success: true,
+      audioUrl: downloadUrl,
+      message: 'Audio généré avec succès'
     });
   } catch (error) {
     logger.error('Erreur lors du test de génération audio:', error);
-    
-    if (error.message && error.message.includes('non configurée')) {
-      return errorResponse(res, 403, 'Clés API non configurées. Utilisez gTTS pour un service gratuit.');
-    }
-    
     return errorResponse(res, 500, error.message || 'Erreur lors de la génération audio');
   }
 };
@@ -182,21 +183,33 @@ const testVoiceGenerationController = async (req, res) => {
  */
 const downloadAudioController = async (req, res) => {
   try {
-    const { filename } = req.params;
-    const audioPath = path.join(process.cwd(), process.env.TTS_CACHE_DIR || 'audio_cache', filename);
+    if (!req.params.filename) {
+      return errorResponse(res, 400, 'Nom de fichier requis');
+    }
+
+    const audioPath = path.join(AUDIO_CACHE_DIR, req.params.filename);
     
-    try {
-      await fs.access(audioPath);
-    } catch (error) {
+    if (!fsSync.existsSync(audioPath)) {
       logger.error(`Fichier audio non trouvé: ${audioPath}`);
       return errorResponse(res, 404, 'Fichier audio non trouvé');
     }
+
+    // Ajouter les headers CORS
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
     
-    logger.info(`Téléchargement du fichier audio: ${audioPath}`);
-    return res.download(audioPath);
+    // Headers pour le fichier audio
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Content-Disposition', `attachment; filename=${req.params.filename}`);
+    
+    // Envoyer le fichier
+    return res.sendFile(audioPath, { root: process.cwd() });
   } catch (error) {
     logger.error('Erreur lors du téléchargement du fichier audio:', error);
-    return errorResponse(res, 500, error.message || 'Erreur lors du téléchargement du fichier audio');
+    return errorResponse(res, 500, 'Erreur lors du téléchargement du fichier audio');
   }
 };
 
@@ -208,20 +221,19 @@ const downloadAudioController = async (req, res) => {
 const configureCompanyVoiceController = async (req, res) => {
   try {
     const { id } = req.params;
-    const { provider, voiceId, speed, format } = req.body;
+    const { gender, language, speed } = req.body;
     
     if (!id) {
       return validationErrorResponse(res, 'L\'ID de l\'entreprise est requis');
     }
     
-    // Ici, vous pourriez sauvegarder la configuration dans une base de données
-    // Pour cet exemple, nous retournons simplement la configuration reçue
+    // Configuration simplifiée pour gTTS
     const voiceConfig = {
-      provider: provider || 'gtts',
-      voiceId: voiceId,
-      language: req.body.language || 'fr',
+      provider: 'gtts',
+      gender: gender || 'female',
+      language: language || 'fr',
       speed: speed || 1.0,
-      format: format || 'mp3'
+      format: 'mp3'
     };
     
     logger.info(`Configuration de la voix pour l'entreprise ${id}:`, voiceConfig);
@@ -254,25 +266,25 @@ const generateCompanyAudioController = async (req, res) => {
       return validationErrorResponse(res, 'Le texte à convertir est requis');
     }
     
-    // Dans une véritable application, vous récupéreriez la configuration depuis la base de données
-    // Pour cet exemple, nous utilisons une configuration par défaut
-    const voiceConfig = {
-      provider: 'gtts', // Par défaut, on utilise gTTS qui est gratuit
-      language: 'fr',   // Langue par défaut: français
-      speed: 1.0,
-      format: 'mp3'
-    };
+    // Générer un nom de fichier unique
+    const fileName = `${uuidv4()}.mp3`;
+    const filePath = path.join(AUDIO_CACHE_DIR, fileName);
     
-    logger.info(`Génération audio pour l'entreprise ${id}: "${text.substring(0, 50)}..."`);
-    const audioFilePath = await voiceService.generateAudio(text, voiceConfig);
+    // Générer l'audio avec gTTS
+    await new Promise((resolve, reject) => {
+      gtts.save(filePath, text, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
     
-    // Calcul du nom de fichier pour l'URL
-    const filename = path.basename(audioFilePath);
-    const downloadUrl = `${req.protocol}://${req.get('host')}/api/voices/download/${filename}`;
+    // Construire l'URL de téléchargement
+    const downloadUrl = `/voices/download/${fileName}`;
     
     return successResponse(res, 200, 'Audio généré avec succès', { 
-      audioFilePath,
-      downloadUrl 
+      success: true,
+      audioUrl: downloadUrl,
+      message: 'Audio généré avec succès'
     });
   } catch (error) {
     logger.error('Erreur lors de la génération audio pour l\'entreprise:', error);
@@ -565,15 +577,14 @@ const analyzeSentiment = async (req, res) => {
 };
 
 module.exports = {
-  getAvailableVoices: getAvailableVoicesController,
+  getAvailableVoicesController,
   uploadCustomVoice: uploadCustomVoiceController,
-  testVoiceGeneration: testVoiceGenerationController,
-  downloadAudio: downloadAudioController,
-  configureCompanyVoice: configureCompanyVoiceController,
-  generateCompanyAudio: generateCompanyAudioController,
+  testVoiceGenerationController,
+  downloadAudioController,
+  configureCompanyVoiceController,
+  generateCompanyAudioController,
   testConversationWithVoice,
   generateConversation,
   generateConversationWithHistory,
-  downloadAudio,
   analyzeSentiment
 }; 
