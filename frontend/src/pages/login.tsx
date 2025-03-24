@@ -21,11 +21,16 @@ const Login: NextPage = () => {
   useEffect(() => {
     if (user) {
       console.log('[LOGIN] Utilisateur déjà connecté, rôle:', user.role);
-      if (user.role === 'admin') {
-        router.push('/dashboard/admin');
-      } else {
-        router.push('/dashboard');
-      }
+      // Ajouter un délai pour éviter les redirections trop rapides
+      const timer = setTimeout(() => {
+        if (user.role === 'admin') {
+          router.push('/dashboard/admin');
+        } else {
+          router.push('/dashboard/user');
+        }
+      }, 300);
+      
+      return () => clearTimeout(timer);
     }
   }, [user, router]);
 

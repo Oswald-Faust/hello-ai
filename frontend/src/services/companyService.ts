@@ -1,4 +1,4 @@
-import API from './api';
+import API, { withRetry } from './api';
 
 export interface Company {
   _id: string;
@@ -127,8 +127,15 @@ const companyService = {
    * @returns Les informations de l'entreprise
    */
   getUserCompany: async (): Promise<Company> => {
-    const response = await API.get('/users/me/company');
-    return response.data.data.company;
+    try {
+      return await withRetry(async () => {
+        const response = await API.get('/users/me/company');
+        return response.data.data.company;
+      });
+    } catch (error) {
+      console.error('[COMPANY SERVICE] Erreur lors de la récupération de l\'entreprise:', error);
+      throw error;
+    }
   },
 
   /**
@@ -137,8 +144,15 @@ const companyService = {
    * @returns Les informations de l'entreprise
    */
   getCompanyById: async (companyId: string): Promise<Company> => {
-    const response = await API.get(`/companies/${companyId}`);
-    return response.data.data.company;
+    try {
+      return await withRetry(async () => {
+        const response = await API.get(`/companies/${companyId}`);
+        return response.data.data.company;
+      });
+    } catch (error) {
+      console.error(`[COMPANY SERVICE] Erreur lors de la récupération de l'entreprise ${companyId}:`, error);
+      throw error;
+    }
   },
 
   /**

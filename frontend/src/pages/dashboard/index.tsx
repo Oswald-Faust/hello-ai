@@ -13,13 +13,25 @@ const Dashboard: NextPage = () => {
   // Rediriger en fonction du rôle
   useEffect(() => {
     if (!user) {
-      router.push('/login');
-    } else if (user.role === 'admin') {
-      // Si c'est un admin, le rediriger vers le dashboard admin
-      router.push('/dashboard/admin');
+      // Ajouter un délai pour éviter les redirections trop rapides
+      const timer = setTimeout(() => {
+        router.push('/login');
+      }, 500);
+      
+      return () => clearTimeout(timer);
     } else {
-      // Tous les autres utilisateurs sont redirigés vers le dashboard utilisateur
-      router.push('/dashboard/user');
+      // Ajouter un délai pour les redirections basées sur le rôle
+      const timer = setTimeout(() => {
+        if (user.role === 'admin') {
+          // Si c'est un admin, le rediriger vers le dashboard admin
+          router.push('/dashboard/admin');
+        } else {
+          // Tous les autres utilisateurs sont redirigés vers le dashboard utilisateur
+          router.push('/dashboard/user');
+        }
+      }, 300);
+      
+      return () => clearTimeout(timer);
     }
   }, [user, router]);
 

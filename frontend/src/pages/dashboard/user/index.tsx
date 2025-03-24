@@ -18,7 +18,12 @@ const UserDashboard: NextPage = () => {
   // Vérifier si l'utilisateur est connecté
   useEffect(() => {
     if (!user) {
-      router.push('/login');
+      // Ajouter un délai pour éviter les redirections trop rapides et les boucles
+      const timer = setTimeout(() => {
+        router.push('/login');
+      }, 500);
+      
+      return () => clearTimeout(timer);
     } else if (user.role === 'admin') {
       // Si l'utilisateur est un admin, le rediriger vers le dashboard admin
       router.push('/dashboard/admin');
@@ -32,6 +37,10 @@ const UserDashboard: NextPage = () => {
       
       try {
         setIsLoading(true);
+        
+        // Attendre un court délai pour s'assurer que les hooks d'authentification sont prêts
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
         // Récupérer les statistiques du dashboard
         const dashboardStats = await dashboardService.getUserDashboardStats();
         setStats(dashboardStats);

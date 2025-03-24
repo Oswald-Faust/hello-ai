@@ -30,8 +30,24 @@ export const useCompany = (): UseCompanyReturn => {
       setLoading(true);
       setError(null);
       
-      const companyData = await companyService.getUserCompany();
-      setCompany(companyData);
+      // Ajouter un petit délai pour s'assurer que les autres hooks sont chargés correctement
+      // et éviter les problèmes de concurrence
+      const companyData = await new Promise<any>((resolve) => {
+        setTimeout(async () => {
+          try {
+            const data = await companyService.getUserCompany();
+            resolve(data);
+          } catch (err) {
+            resolve(null);
+          }
+        }, 300);
+      });
+      
+      if (companyData) {
+        setCompany(companyData);
+      } else {
+        throw new Error("Impossible de charger les données de l'entreprise");
+      }
     } catch (err: any) {
       console.error('Erreur lors de la récupération des données de l\'entreprise:', err);
       setError(err instanceof Error ? err : new Error(err.message || 'Erreur inconnue'));

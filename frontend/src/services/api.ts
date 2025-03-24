@@ -15,7 +15,7 @@ const getRequestKey = (config: AxiosRequestConfig) => {
 const api = axios.create({
   baseURL: API_URL,
   withCredentials: true,
-  timeout: 15000, // Réduire le timeout par défaut
+  timeout: 30000, // Augmenter le timeout pour donner plus de temps aux requêtes
 });
 
 // Intercepteur pour les requêtes
@@ -178,5 +178,20 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// Ajouter une fonction de récupération en cas d'échec avec retry
+export const withRetry = async (fn: () => Promise<any>, retries = 3, delay = 500) => {
+  try {
+    return await fn();
+  } catch (error) {
+    if (retries <= 0) {
+      throw error;
+    }
+    
+    console.log(`[API] Tentative échouée, nouvel essai dans ${delay}ms. Essais restants: ${retries}`);
+    await new Promise(resolve => setTimeout(resolve, delay));
+    return withRetry(fn, retries - 1, delay * 1.5); // Augmenter le délai à chaque tentative
+  }
+};
 
 export default api; 

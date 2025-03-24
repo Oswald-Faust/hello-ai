@@ -46,6 +46,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem('user');
       }
     }
+    // Ajouter cette ligne pour indiquer que le chargement initial est terminé
+    setLoading(false);
   }, []);
 
   const login = async (email: string, password: string): Promise<string> => {
