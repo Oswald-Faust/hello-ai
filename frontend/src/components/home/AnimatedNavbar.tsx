@@ -141,6 +141,7 @@ const AnimatedNavbar = () => {
                   <Button 
                     variant={scrolled ? "default" : "secondary"} 
                     size="sm"
+                    className="text-white hover:text-white"
                   >
                     Dashboard
                   </Button>
