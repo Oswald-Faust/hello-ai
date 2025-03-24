@@ -33,4 +33,4 @@ coverage/
 
 # Fichiers temporaires
 *.swp
-*.swo 
+*.swo backend/.env
