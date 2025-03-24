@@ -483,4 +483,412 @@ exports.updateUserRole = async (req, res) => {
   }
 };
 
+/**
+ * Obtenir l'entreprise de l'utilisateur connecté
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
+exports.getUserCompany = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    logger.info(`[USER CONTROLLER] Récupération de l'entreprise pour l'utilisateur ${userId}`);
+    
+    // Récupérer l'utilisateur avec les informations de son entreprise
+    const user = await User.findById(userId)
+      .select('-password')
+      .populate('company');
+    
+    if (!user) {
+      logger.warn(`[USER CONTROLLER] Utilisateur ${userId} non trouvé`);
+      return res.status(404).json({
+        success: false,
+        message: 'Utilisateur non trouvé'
+      });
+    }
+    
+    if (!user.company) {
+      logger.warn(`[USER CONTROLLER] Aucune entreprise associée à l'utilisateur ${userId}`);
+      return res.status(404).json({
+        success: false,
+        message: 'Aucune entreprise associée à cet utilisateur'
+      });
+    }
+    
+    logger.info(`[USER CONTROLLER] Entreprise récupérée avec succès pour l'utilisateur ${userId}`);
+    
+    return res.status(200).json({
+      success: true,
+      data: {
+        company: user.company
+      }
+    });
+  } catch (error) {
+    logger.error(`[USER CONTROLLER] Erreur lors de la récupération de l'entreprise de l'utilisateur: ${error.message}`);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération de l\'entreprise',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Obtenir les statistiques du tableau de bord pour l'utilisateur connecté
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
+exports.getUserDashboardStats = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { period = '7days' } = req.query;
+    
+    logger.info(`[USER CONTROLLER] Récupération des statistiques du tableau de bord pour l'utilisateur ${userId}, période: ${period}`);
+    
+    // Récupérer l'utilisateur et son entreprise
+    const user = await User.findById(userId).populate('company');
+    
+    if (!user) {
+      logger.warn(`[USER CONTROLLER] Utilisateur ${userId} non trouvé`);
+      return res.status(404).json({
+        success: false,
+        message: 'Utilisateur non trouvé'
+      });
+    }
+    
+    if (!user.company) {
+      logger.warn(`[USER CONTROLLER] Aucune entreprise associée à l'utilisateur ${userId}`);
+      return res.status(404).json({
+        success: false,
+        message: 'Aucune entreprise associée à cet utilisateur'
+      });
+    }
+    
+    const companyId = user.company._id;
+    
+    // Déterminer la plage de dates en fonction de la période
+    const endDate = new Date();
+    const startDate = new Date();
+    
+    switch (period) {
+      case 'today':
+        startDate.setHours(0, 0, 0, 0);
+        break;
+      case '7days':
+        startDate.setDate(startDate.getDate() - 7);
+        break;
+      case '30days':
+        startDate.setDate(startDate.getDate() - 30);
+        break;
+      case '90days':
+        startDate.setDate(startDate.getDate() - 90);
+        break;
+      case 'year':
+        startDate.setFullYear(startDate.getFullYear() - 1);
+        break;
+      default:
+        startDate.setDate(startDate.getDate() - 7);
+    }
+    
+    // Importer les modèles nécessaires pour les statistiques
+    const Call = require('../models/Call');
+    
+    // Obtenir les statistiques des appels
+    const totalCalls = await Call.countDocuments({
+      company: companyId,
+      createdAt: { $gte: startDate, $lte: endDate }
+    });
+    
+    const completedCalls = await Call.countDocuments({
+      company: companyId,
+      status: 'completed',
+      createdAt: { $gte: startDate, $lte: endDate }
+    });
+    
+    const transferredCalls = await Call.countDocuments({
+      company: companyId,
+      transferredToAgent: true,
+      createdAt: { $gte: startDate, $lte: endDate }
+    });
+    
+    // Calculer la durée moyenne des appels
+    const callDurationStats = await Call.aggregate([
+      {
+        $match: {
+          company: companyId,
+          status: 'completed',
+          createdAt: { $gte: startDate, $lte: endDate },
+          duration: { $exists: true, $ne: null }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          avgDuration: { $avg: '$duration' },
+          totalDuration: { $sum: '$duration' }
+        }
+      }
+    ]);
+    
+    const avgCallDuration = callDurationStats.length > 0 ? Math.round(callDurationStats[0].avgDuration) : 0;
+    const totalCallDuration = callDurationStats.length > 0 ? callDurationStats[0].totalDuration : 0;
+    
+    // Obtenir la répartition des appels par jour
+    const callsByDay = await Call.aggregate([
+      {
+        $match: {
+          company: companyId,
+          createdAt: { $gte: startDate, $lte: endDate }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' },
+            day: { $dayOfMonth: '$createdAt' }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 }
+      }
+    ]);
+    
+    // Formater les données pour le frontend
+    const formattedCallsByDay = callsByDay.map(item => ({
+      date: `${item._id.year}-${String(item._id.month).padStart(2, '0')}-${String(item._id.day).padStart(2, '0')}`,
+      count: item.count
+    }));
+    
+    logger.info(`[USER CONTROLLER] Statistiques du tableau de bord récupérées avec succès pour l'utilisateur ${userId}`);
+    
+    return res.status(200).json({
+      success: true,
+      data: {
+        totalCalls,
+        completedCalls,
+        transferredCalls,
+        avgCallDuration,
+        totalCallDuration,
+        callsByDay: formattedCallsByDay,
+        period
+      }
+    });
+  } catch (error) {
+    logger.error(`[USER CONTROLLER] Erreur lors de la récupération des statistiques du tableau de bord: ${error.message}`);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des statistiques du tableau de bord',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Obtenir les activités de l'utilisateur connecté
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
+exports.getUserActivities = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { page = 1, limit = 10 } = req.query;
+    const skip = (page - 1) * limit;
+    
+    logger.info(`[USER CONTROLLER] Récupération des activités pour l'utilisateur ${userId}`);
+    
+    // Importer le modèle Activity
+    const Activity = require('../models/Activity');
+    
+    // Récupérer les activités de l'utilisateur
+    const activities = await Activity.find({ user: userId })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .populate('relatedEntity', 'name title content');
+    
+    // Compter le nombre total d'activités
+    const totalActivities = await Activity.countDocuments({ user: userId });
+    
+    logger.info(`[USER CONTROLLER] ${activities.length} activités récupérées pour l'utilisateur ${userId}`);
+    
+    return res.status(200).json({
+      success: true,
+      data: {
+        activities,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: totalActivities,
+          pages: Math.ceil(totalActivities / limit)
+        }
+      }
+    });
+  } catch (error) {
+    logger.error(`[USER CONTROLLER] Erreur lors de la récupération des activités: ${error.message}`);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des activités',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Obtenir les conversations de l'utilisateur connecté
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
+exports.getUserConversations = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { page = 1, limit = 10, status } = req.query;
+    const skip = (page - 1) * limit;
+    
+    logger.info(`[USER CONTROLLER] Récupération des conversations pour l'utilisateur ${userId}`);
+    
+    // Importer le modèle Conversation
+    const Conversation = require('../models/Conversation');
+    
+    // Préparer le filtre de requête
+    const filter = { 
+      $or: [
+        { participants: userId },
+        { createdBy: userId }
+      ]
+    };
+    
+    // Ajouter le filtre de statut si spécifié
+    if (status) {
+      filter.status = status;
+    }
+    
+    // Récupérer les conversations de l'utilisateur
+    const conversations = await Conversation.find(filter)
+      .sort({ updatedAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .populate('participants', 'name email avatar')
+      .populate('lastMessage')
+      .populate('createdBy', 'name email avatar');
+    
+    // Compter le nombre total de conversations
+    const totalConversations = await Conversation.countDocuments(filter);
+    
+    logger.info(`[USER CONTROLLER] ${conversations.length} conversations récupérées pour l'utilisateur ${userId}`);
+    
+    return res.status(200).json({
+      success: true,
+      data: {
+        conversations,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: totalConversations,
+          pages: Math.ceil(totalConversations / limit)
+        }
+      }
+    });
+  } catch (error) {
+    logger.error(`[USER CONTROLLER] Erreur lors de la récupération des conversations: ${error.message}`);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des conversations',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Obtenir les appels de l'utilisateur connecté
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
+exports.getUserCalls = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { page = 1, limit = 10, status, startDate, endDate } = req.query;
+    const skip = (page - 1) * limit;
+    
+    logger.info(`[USER CONTROLLER] Récupération des appels pour l'utilisateur ${userId}`);
+    
+    // Récupérer l'utilisateur pour obtenir son entreprise
+    const user = await User.findById(userId).populate('company');
+    
+    if (!user) {
+      logger.warn(`[USER CONTROLLER] Utilisateur ${userId} non trouvé`);
+      return res.status(404).json({
+        success: false,
+        message: 'Utilisateur non trouvé'
+      });
+    }
+    
+    // Importer le modèle Call
+    const Call = require('../models/Call');
+    
+    // Préparer le filtre de requête
+    const filter = {
+      $or: [
+        { handledBy: userId },
+        { initiatedBy: userId }
+      ]
+    };
+    
+    // Ajouter le filtre de statut si spécifié
+    if (status) {
+      filter.status = status;
+    }
+    
+    // Ajouter les filtres de date si spécifiés
+    if (startDate || endDate) {
+      filter.createdAt = {};
+      
+      if (startDate) {
+        filter.createdAt.$gte = new Date(startDate);
+      }
+      
+      if (endDate) {
+        filter.createdAt.$lte = new Date(endDate);
+      }
+    }
+    
+    // Récupérer les appels de l'utilisateur
+    const calls = await Call.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .populate('customer', 'name email phoneNumber')
+      .populate('handledBy', 'name email avatar')
+      .populate('initiatedBy', 'name email avatar')
+      .populate('voice', 'name language gender');
+    
+    // Compter le nombre total d'appels
+    const totalCalls = await Call.countDocuments(filter);
+    
+    logger.info(`[USER CONTROLLER] ${calls.length} appels récupérés pour l'utilisateur ${userId}`);
+    
+    return res.status(200).json({
+      success: true,
+      data: {
+        calls,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: totalCalls,
+          pages: Math.ceil(totalCalls / limit)
+        }
+      }
+    });
+  } catch (error) {
+    logger.error(`[USER CONTROLLER] Erreur lors de la récupération des appels: ${error.message}`);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des appels',
+      error: error.message
+    });
+  }
+};
+
 module.exports = exports; 

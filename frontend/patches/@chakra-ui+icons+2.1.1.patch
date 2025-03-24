@@ -1,0 +1,21 @@
+diff --git a/node_modules/@chakra-ui/icons/dist/esm/Spinner.mjs b/node_modules/@chakra-ui/icons/dist/esm/Spinner.mjs
+index 123456..789012 100644
+--- a/node_modules/@chakra-ui/icons/dist/esm/Spinner.mjs
++++ b/node_modules/@chakra-ui/icons/dist/esm/Spinner.mjs
+@@ -1,5 +1,6 @@
+-import { forwardRef } from '@chakra-ui/react';
++// Import forwardRef from React instead of @chakra-ui/react
++import { forwardRef } from 'react';
+ import { jsx } from 'react/jsx-runtime';
+ import { IconProps, Icon } from './Icon.mjs';
+ 
+diff --git a/node_modules/@chakra-ui/icons/dist/cjs/Spinner.cjs b/node_modules/@chakra-ui/icons/dist/cjs/Spinner.cjs
+index 123456..789012 100644
+--- a/node_modules/@chakra-ui/icons/dist/cjs/Spinner.cjs
++++ b/node_modules/@chakra-ui/icons/dist/cjs/Spinner.cjs
+@@ -1,5 +1,6 @@
+-const { forwardRef } = require('@chakra-ui/react');
++// Import forwardRef from React instead of @chakra-ui/react
++const { forwardRef } = require('react');
+ const { jsx } = require('react/jsx-runtime');
+ const { Icon } = require('./Icon.cjs'); 

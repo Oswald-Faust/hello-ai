@@ -317,6 +317,17 @@ const getAvailableVoices = async (provider = 'gtts') => {
       });
 
       return response.data;
+    } else if (provider.toLowerCase() === 'fonoster') {
+      // Liste des voix disponibles pour Fonoster
+      const voices = [
+        { id: 'fr-FR-Standard-A', name: 'Français - Julie', gender: 'female', language: 'fr-FR', provider: 'fonoster' },
+        { id: 'fr-FR-Standard-B', name: 'Français - Thomas', gender: 'male', language: 'fr-FR', provider: 'fonoster' },
+        { id: 'fr-FR-Standard-C', name: 'Français - Emma', gender: 'female', language: 'fr-FR', provider: 'fonoster' },
+        { id: 'fr-FR-Standard-D', name: 'Français - Antoine', gender: 'male', language: 'fr-FR', provider: 'fonoster' },
+        { id: 'fr-FR-Standard-E', name: 'Français - Sophie', gender: 'female', language: 'fr-FR', provider: 'fonoster' }
+      ];
+      
+      return voices;
     } else {
       throw new Error(`Fournisseur non supporté: ${provider}`);
     }

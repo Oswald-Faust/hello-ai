@@ -11,7 +11,13 @@ import {
   PhoneCall, 
   MessageCircle,
   FileText,
-  HelpCircle
+  HelpCircle,
+  Mic,
+  VolumeX,
+  BookOpen,
+  Headphones,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/Button';
@@ -24,6 +30,7 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
   const { user, logout } = useAuth();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [voiceAIOpen, setVoiceAIOpen] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -35,9 +42,29 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
     { name: 'Mes conversations', href: '/dashboard/user/conversations', icon: MessageCircle, current: router.pathname.startsWith('/dashboard/user/conversations') },
     { name: 'Mes appels', href: '/dashboard/user/calls', icon: PhoneCall, current: router.pathname.startsWith('/dashboard/user/calls') },
     { name: 'Mes documents', href: '/dashboard/user/documents', icon: FileText, current: router.pathname.startsWith('/dashboard/user/documents') },
+  ];
+
+  const voiceAINavigation = [
+    { name: 'Paramètres vocaux', href: '/dashboard/user/voice/settings', icon: Mic, current: router.pathname === '/dashboard/user/voice/settings' },
+    { name: 'Scripts de conversation', href: '/dashboard/user/voice/scripts', icon: BookOpen, current: router.pathname === '/dashboard/user/voice/scripts' },
+    { name: 'Réponses personnalisées', href: '/dashboard/user/voice/responses', icon: VolumeX, current: router.pathname === '/dashboard/user/voice/responses' },
+    { name: 'Tests audio', href: '/dashboard/user/voice/tests', icon: Headphones, current: router.pathname === '/dashboard/user/voice/tests' },
+  ];
+
+  const additionalNavigation = [
     { name: 'Paramètres', href: '/dashboard/user/settings', icon: Settings, current: router.pathname.startsWith('/dashboard/user/settings') },
     { name: 'Aide', href: '/dashboard/user/help', icon: HelpCircle, current: router.pathname.startsWith('/dashboard/user/help') },
   ];
+
+  // Vérifier si une page de l'IA vocale est active
+  const isVoiceAIActive = voiceAINavigation.some(item => item.current);
+  
+  // Si une page de l'IA vocale est active, ouvrir automatiquement le menu
+  React.useEffect(() => {
+    if (isVoiceAIActive) {
+      setVoiceAIOpen(true);
+    }
+  }, [isVoiceAIActive]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -66,6 +93,79 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
             </div>
             <nav className="mt-5 px-2 space-y-1">
               {navigation.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`group flex items-center px-2 py-2 text-base font-medium rounded-md ${
+                    item.current
+                      ? 'bg-indigo-100 text-indigo-600'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  }`}
+                >
+                  <item.icon
+                    className={`mr-4 h-6 w-6 ${
+                      item.current
+                        ? 'text-indigo-600'
+                        : 'text-gray-400 group-hover:text-gray-500'
+                    }`}
+                  />
+                  {item.name}
+                </Link>
+              ))}
+              
+              {/* Voice AI Section */}
+              <div className="space-y-1">
+                <button
+                  type="button"
+                  className={`group flex w-full items-center px-2 py-2 text-base font-medium rounded-md ${
+                    isVoiceAIActive
+                      ? 'bg-indigo-100 text-indigo-600'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  }`}
+                  onClick={() => setVoiceAIOpen(!voiceAIOpen)}
+                >
+                  <Mic
+                    className={`mr-4 h-6 w-6 ${
+                      isVoiceAIActive
+                        ? 'text-indigo-600'
+                        : 'text-gray-400 group-hover:text-gray-500'
+                    }`}
+                  />
+                  <span className="flex-1">Configuration IA vocale</span>
+                  {voiceAIOpen ? (
+                    <ChevronDown className="h-5 w-5 text-gray-400" />
+                  ) : (
+                    <ChevronRight className="h-5 w-5 text-gray-400" />
+                  )}
+                </button>
+                
+                {voiceAIOpen && (
+                  <div className="ml-8 space-y-1">
+                    {voiceAINavigation.map((subItem) => (
+                      <Link
+                        key={subItem.name}
+                        href={subItem.href}
+                        className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
+                          subItem.current
+                            ? 'bg-indigo-50 text-indigo-600'
+                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        }`}
+                      >
+                        <subItem.icon
+                          className={`mr-3 h-5 w-5 ${
+                            subItem.current
+                              ? 'text-indigo-600'
+                              : 'text-gray-400 group-hover:text-gray-500'
+                          }`}
+                        />
+                        {subItem.name}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              {additionalNavigation.map((item) => (
                 <Link
                   key={item.name}
                   href={item.href}
@@ -114,6 +214,79 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
             </div>
             <nav className="mt-5 flex-1 px-2 space-y-1">
               {navigation.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
+                    item.current
+                      ? 'bg-indigo-100 text-indigo-600'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  }`}
+                >
+                  <item.icon
+                    className={`mr-3 h-5 w-5 ${
+                      item.current
+                        ? 'text-indigo-600'
+                        : 'text-gray-400 group-hover:text-gray-500'
+                    }`}
+                  />
+                  {item.name}
+                </Link>
+              ))}
+              
+              {/* Voice AI Section */}
+              <div className="space-y-1">
+                <button
+                  type="button"
+                  className={`group flex w-full items-center px-2 py-2 text-sm font-medium rounded-md ${
+                    isVoiceAIActive
+                      ? 'bg-indigo-100 text-indigo-600'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  }`}
+                  onClick={() => setVoiceAIOpen(!voiceAIOpen)}
+                >
+                  <Mic
+                    className={`mr-3 h-5 w-5 ${
+                      isVoiceAIActive
+                        ? 'text-indigo-600'
+                        : 'text-gray-400 group-hover:text-gray-500'
+                    }`}
+                  />
+                  <span className="flex-1">Configuration IA vocale</span>
+                  {voiceAIOpen ? (
+                    <ChevronDown className="h-5 w-5 text-gray-400" />
+                  ) : (
+                    <ChevronRight className="h-5 w-5 text-gray-400" />
+                  )}
+                </button>
+                
+                {voiceAIOpen && (
+                  <div className="ml-7 space-y-1">
+                    {voiceAINavigation.map((subItem) => (
+                      <Link
+                        key={subItem.name}
+                        href={subItem.href}
+                        className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
+                          subItem.current
+                            ? 'bg-indigo-50 text-indigo-600'
+                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        }`}
+                      >
+                        <subItem.icon
+                          className={`mr-3 h-5 w-5 ${
+                            subItem.current
+                              ? 'text-indigo-600'
+                              : 'text-gray-400 group-hover:text-gray-500'
+                          }`}
+                        />
+                        {subItem.name}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              {additionalNavigation.map((item) => (
                 <Link
                   key={item.name}
                   href={item.href}

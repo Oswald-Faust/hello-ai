@@ -2,11 +2,20 @@ import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
+// Pour gérer les requêtes en cours
+const pendingRequests = new Map();
+
+// Créer une fonction pour générer une clé unique pour chaque requête
+const getRequestKey = (config: AxiosRequestConfig) => {
+  const { method, url, params, data } = config;
+  return `${method}:${url}:${JSON.stringify(params)}:${JSON.stringify(data)}`;
+};
+
 // Créer une instance axios avec la configuration de base
 const api = axios.create({
   baseURL: API_URL,
   withCredentials: true,
-  timeout: 30000,
+  timeout: 15000, // Réduire le timeout par défaut
 });
 
 // Intercepteur pour les requêtes
@@ -23,6 +32,19 @@ api.interceptors.request.use(
     } else {
       console.log('[API] Aucun token disponible pour cette requête');
     }
+    
+    // Annuler les requêtes précédentes avec la même signature
+    const requestKey = getRequestKey(config);
+    if (pendingRequests.has(requestKey)) {
+      const controller = pendingRequests.get(requestKey);
+      controller.abort();
+      console.log(`[API] Requête précédente annulée: ${requestKey}`);
+    }
+    
+    // Créer un nouveau controller d'annulation
+    const controller = new AbortController();
+    config.signal = controller.signal;
+    pendingRequests.set(requestKey, controller);
     
     return config;
   },
@@ -57,17 +79,34 @@ const processQueue = (error: any, token: string | null = null) => {
 api.interceptors.response.use(
   (response) => {
     console.log(`[API] Réponse reçue de ${response.config.url} avec statut ${response.status}`);
+    // Nettoyer la requête de la liste des requêtes en cours
+    const requestKey = getRequestKey(response.config);
+    pendingRequests.delete(requestKey);
     return response;
   },
-  async (error: AxiosError) => {
-    const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+  async (error: unknown) => {
+    // Conversion de l'erreur pour accéder aux propriétés d'AxiosError
+    const axiosError = error as AxiosError;
+    const originalRequest = axiosError.config as AxiosRequestConfig & { _retry?: boolean };
+    
+    // Nettoyer la requête de la liste des requêtes en cours, même en cas d'erreur
+    if (originalRequest) {
+      const requestKey = getRequestKey(originalRequest);
+      pendingRequests.delete(requestKey);
+    }
+    
+    // Si l'erreur vient d'une annulation, on l'ignore simplement
+    if (axios.isCancel(error)) {
+      console.log('[API] Requête annulée');
+      return Promise.reject(error);
+    }
     
     // Logger l'erreur pour faciliter le débogage
-    console.error(`[API] Erreur ${error.response?.status} pour ${originalRequest.url}:`, 
-      error.response?.data || error.message);
+    console.error(`[API] Erreur ${axiosError.response?.status} pour ${originalRequest.url}:`, 
+      axiosError.response?.data || axiosError.message);
     
     // Gérer les erreurs 401 (non autorisé)
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (axiosError.response?.status === 401 && !originalRequest._retry) {
       // Vérifier si la tentative de rafraîchissement est déjà en cours
       if (isRefreshing) {
         console.log('[API] Rafraîchissement déjà en cours, mise en file d\'attente de la requête');

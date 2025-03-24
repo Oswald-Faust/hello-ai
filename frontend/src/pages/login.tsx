@@ -86,7 +86,7 @@ const Login: NextPage = () => {
         <div className="w-full max-w-sm mx-auto lg:w-96">
           <div>
             <Link href="/" className="flex items-center">
-              <Image src="/logo.svg" alt="Lydia" width={40} height={40} />
+              <Image src="/logo.svg" alt="Lydia" width={40} height={40} fetchPriority="high" />
               <span className="ml-2 text-2xl font-bold text-gray-900">Lydia</span>
             </Link>
             <h2 className="mt-6 text-3xl font-extrabold text-gray-900">Connexion</h2>

@@ -4,10 +4,28 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
+import { useAuth } from '@/hooks/useAuth';
 
 const AnimatedNavbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  
+  // Essayer d'utiliser useAuth, mais gérer le cas où il n'est pas disponible
+  useEffect(() => {
+    try {
+      // Vérifier si l'utilisateur a des données stockées dans localStorage
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        setIsAuthenticated(true);
+        setUserRole(parsedUser.role);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la vérification de l\'authentification:', error);
+    }
+  }, []);
 
   // Détection du scroll pour changer l'apparence de la navbar
   useEffect(() => {
@@ -113,34 +131,53 @@ const AnimatedNavbar = () => {
           
           {/* Boutons d'action */}
           <div className="hidden md:flex items-center space-x-4">
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.6 }}
-            >
-              <Link href="/auth/login">
-                <Button 
-                  variant={scrolled ? "outline" : "secondary"} 
-                  size="sm"
+            {isAuthenticated ? (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, delay: 0.6 }}
+              >
+                <Link href={`/dashboard/${userRole === 'admin' ? 'admin' : 'user'}`}>
+                  <Button 
+                    variant={scrolled ? "default" : "secondary"} 
+                    size="sm"
+                  >
+                    Dashboard
+                  </Button>
+                </Link>
+              </motion.div>
+            ) : (
+              <>
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: 0.6 }}
                 >
-                  Connexion
-                </Button>
-              </Link>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.7 }}
-            >
-              <Link href="/auth/register">
-                <Button 
-                  variant={scrolled ? "default" : "secondary"} 
-                  size="sm"
+                  <Link href="/auth/login">
+                    <Button 
+                      variant={scrolled ? "outline" : "secondary"} 
+                      size="sm"
+                    >
+                      Connexion
+                    </Button>
+                  </Link>
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: 0.7 }}
                 >
-                  Inscription
-                </Button>
-              </Link>
-            </motion.div>
+                  <Link href="/auth/register">
+                    <Button 
+                      variant={scrolled ? "default" : "secondary"} 
+                      size="sm"
+                    >
+                      Inscription
+                    </Button>
+                  </Link>
+                </motion.div>
+              </>
+            )}
           </div>
           
           {/* Bouton du menu mobile */}
@@ -205,16 +242,26 @@ const AnimatedNavbar = () => {
                   </motion.div>
                 ))}
                 <div className="flex flex-col space-y-3 mt-4 pt-4 border-t border-gray-100">
-                  <Link href="/auth/login">
-                    <Button variant="outline" className="w-full">
-                      Connexion
-                    </Button>
-                  </Link>
-                  <Link href="/auth/register">
-                    <Button className="w-full">
-                      Inscription
-                    </Button>
-                  </Link>
+                  {isAuthenticated ? (
+                    <Link href={`/dashboard/${userRole === 'admin' ? 'admin' : 'user'}`}>
+                      <Button className="w-full">
+                        Dashboard
+                      </Button>
+                    </Link>
+                  ) : (
+                    <>
+                      <Link href="/auth/login">
+                        <Button variant="outline" className="w-full">
+                          Connexion
+                        </Button>
+                      </Link>
+                      <Link href="/auth/register">
+                        <Button className="w-full">
+                          Inscription
+                        </Button>
+                      </Link>
+                    </>
+                  )}
                 </div>
               </div>
             </motion.div>
