@@ -1,0 +1,6 @@
+{
+  "version": 2,
+  "buildCommand": "npm run vercel-build",
+  "installCommand": "npm install --no-scripts && npm rebuild",
+  "framework": "nextjs"
+} 
