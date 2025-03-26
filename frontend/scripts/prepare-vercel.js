@@ -126,7 +126,7 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
   error?: boolean;
   fullWidth?: boolean;
   readOnly?: boolean;
-  size?: 'default' | 'sm' | 'lg';
+  sizeVariant?: 'default' | 'sm' | 'lg';
   prefix?: React.ReactNode;
   suffix?: React.ReactNode;
 }
@@ -146,7 +146,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
   error,
   fullWidth,
   readOnly,
-  size = 'default',
+  sizeVariant = 'default',
   prefix,
   suffix,
   ...props
@@ -166,7 +166,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
         'flex w-full rounded-md border border-input bg-background py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
         error && 'border-destructive',
         fullWidth && 'w-full',
-        getSizeClasses(size),
+        getSizeClasses(sizeVariant),
         className
       )}
       type={type}
