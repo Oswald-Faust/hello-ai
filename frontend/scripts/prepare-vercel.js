@@ -210,7 +210,7 @@ export interface ${capitalizedName}Props {
   className?: string;
 }
 
-export const ${capitalizedName}: React.FC<${capitalizedName}Props> = ({ 
+const ${capitalizedName}: React.FC<${capitalizedName}Props> = ({ 
   children, 
   className, 
   ...props 
@@ -225,8 +225,7 @@ export const ${capitalizedName}: React.FC<${capitalizedName}Props> = ({
   );
 };
 
-export { ${capitalizedName} };
-export default ${capitalizedName};`;
+export { ${capitalizedName} };`;
   }
   
   fs.writeFileSync(targetPath, content);
