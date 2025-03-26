@@ -6,11 +6,28 @@ const componentsDir = path.join(__dirname, '..', 'src', 'components', 'ui');
 
 // Fonction pour créer un composant redirecteur
 function createRedirectorComponent(name, targetName) {
-  const content = `// Redirecteur vers ${targetName} pour la compatibilité des imports
+  let content = '';
+  
+  // Cas spéciaux pour les composants qui ont des sous-composants
+  if (name === 'alert') {
+    content = `// Redirecteur vers ${targetName} pour la compatibilité des imports
+import { ${targetName}, AlertTitle, AlertDescription } from './${targetName}';
+export { ${targetName}, AlertTitle, AlertDescription };
+export default ${targetName};
+`;
+  } else if (name === 'card') {
+    content = `// Redirecteur vers ${targetName} pour la compatibilité des imports
+import { ${targetName}, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from './${targetName}';
+export { ${targetName}, CardHeader, CardTitle, CardDescription, CardContent, CardFooter };
+export default ${targetName};
+`;
+  } else {
+    content = `// Redirecteur vers ${targetName} pour la compatibilité des imports
 import { ${targetName} } from './${targetName}';
 export { ${targetName} };
 export default ${targetName};
 `;
+  }
   
   fs.writeFileSync(path.join(componentsDir, `${name}.tsx`), content);
   console.log(`Créé: ${name}.tsx -> ${targetName}.tsx`);
