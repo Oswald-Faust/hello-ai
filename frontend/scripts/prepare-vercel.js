@@ -51,7 +51,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
   ...props
 }, ref) => {
   // Définir des classes basées sur la variante
-  const getVariantClasses = (variant) => {
+  const getVariantClasses = (variant: string): string => {
     switch(variant) {
       case 'outline':
         return 'border border-input bg-background hover:bg-accent hover:text-accent-foreground';
@@ -69,7 +69,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
   };
   
   // Définir des classes basées sur la taille
-  const getSizeClasses = (size) => {
+  const getSizeClasses = (size: string): string => {
     switch(size) {
       case 'sm':
         return 'h-9 px-3 rounded-md text-xs';
@@ -151,7 +151,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
   suffix,
   ...props
 }, ref) => {
-  const getSizeClasses = (size) => {
+  const getSizeClasses = (size: string): string => {
     switch(size) {
       case 'sm': return 'h-8 text-xs px-2.5';
       case 'lg': return 'h-12 text-base px-4';
@@ -188,49 +188,6 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
 Input.displayName = 'Input';
 
 export { Input };`,
-
-  'label.tsx': `import React from 'react';
-import { cn } from '@/lib/utils';
-
-export interface LabelProps extends React.LabelHTMLAttributes<HTMLLabelElement> {
-  children?: React.ReactNode;
-  className?: string;
-  htmlFor?: string;
-  required?: boolean;
-  disabled?: boolean;
-  error?: boolean;
-}
-
-const Label = React.forwardRef<HTMLLabelElement, LabelProps>(({ 
-  children, 
-  className,
-  htmlFor,
-  required,
-  disabled,
-  error,
-  ...props 
-}, ref) => {
-  return (
-    <label 
-      ref={ref}
-      htmlFor={htmlFor}
-      className={cn(
-        'text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70',
-        disabled && 'opacity-70 cursor-not-allowed',
-        error && 'text-destructive',
-        className
-      )} 
-      {...props}
-    >
-      {children}
-      {required && <span className="ml-1 text-destructive">*</span>}
-    </label>
-  );
-});
-
-Label.displayName = 'Label';
-
-export { Label };`,
 
   'textarea.tsx': `import React from 'react';
 import { cn } from '@/lib/utils';
@@ -273,7 +230,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({
   resize = 'vertical',
   ...props
 }, ref) => {
-  const getResizeClass = (resize) => {
+  const getResizeClass = (resize: string): string => {
     switch(resize) {
       case 'none': return 'resize-none';
       case 'horizontal': return 'resize-x';
@@ -312,6 +269,87 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({
 Textarea.displayName = 'Textarea';
 
 export { Textarea };`,
+
+  'badge.tsx': `import React from 'react';
+import { cn } from '@/lib/utils';
+
+export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
+  variant?: 'default' | 'secondary' | 'outline' | 'destructive' | 'success' | 'warning' | 'info';
+  size?: 'default' | 'sm' | 'lg';
+  rounded?: boolean;
+  isClosable?: boolean;
+  onClose?: () => void;
+}
+
+const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(({
+  className,
+  variant = 'default',
+  size = 'default',
+  rounded = false,
+  isClosable = false,
+  onClose,
+  children,
+  ...props
+}, ref) => {
+  const getVariantClasses = (variant: string): string => {
+    switch(variant) {
+      case 'secondary':
+        return 'bg-secondary text-secondary-foreground';
+      case 'destructive':
+        return 'bg-destructive text-destructive-foreground';
+      case 'success':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'warning':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'info':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'outline':
+        return 'bg-transparent border border-input text-foreground';
+      default:
+        return 'bg-primary text-primary-foreground';
+    }
+  };
+
+  const getSizeClasses = (size: string): string => {
+    switch(size) {
+      case 'sm': return 'text-xs px-2 py-0.5';
+      case 'lg': return 'text-sm px-3 py-1';
+      default: return 'text-xs px-2.5 py-0.5';
+    }
+  };
+
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        'inline-flex items-center font-medium border',
+        rounded ? 'rounded-full' : 'rounded-md',
+        getVariantClasses(variant),
+        getSizeClasses(size),
+        className
+      )}
+      {...props}
+    >
+      {children}
+      {isClosable && (
+        <button
+          type="button"
+          className="ml-1 -mr-1 h-3.5 w-3.5 rounded-full inline-flex items-center justify-center hover:bg-white/20"
+          onClick={onClose}
+        >
+          <span className="sr-only">Close</span>
+          <svg className="h-3 w-3" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M18.3 5.71a.996.996 0 00-1.41 0L12 10.59 7.11 5.7a.996.996 0 00-1.41 0 .996.996 0 000 1.41L10.59 12 5.7 16.89a.996.996 0 101.41 1.41L12 13.41l4.89 4.89a.996.996 0 101.41-1.41L13.41 12l4.89-4.89c.38-.38.38-1.02 0-1.4z" />
+          </svg>
+        </button>
+      )}
+    </div>
+  );
+});
+
+Badge.displayName = 'Badge';
+
+export { Badge };`,
 
   'alert.tsx': `import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
@@ -686,87 +724,6 @@ const DialogClose: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>> = ({ 
 };
 
 export { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose };`,
-
-  'badge.tsx': `import React from 'react';
-import { cn } from '@/lib/utils';
-
-export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: 'default' | 'secondary' | 'outline' | 'destructive' | 'success' | 'warning' | 'info';
-  size?: 'default' | 'sm' | 'lg';
-  rounded?: boolean;
-  isClosable?: boolean;
-  onClose?: () => void;
-}
-
-const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(({
-  className,
-  variant = 'default',
-  size = 'default',
-  rounded = false,
-  isClosable = false,
-  onClose,
-  children,
-  ...props
-}, ref) => {
-  const getVariantClasses = (variant) => {
-    switch(variant) {
-      case 'secondary':
-        return 'bg-secondary text-secondary-foreground';
-      case 'destructive':
-        return 'bg-destructive text-destructive-foreground';
-      case 'success':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'warning':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'info':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'outline':
-        return 'bg-transparent border border-input text-foreground';
-      default:
-        return 'bg-primary text-primary-foreground';
-    }
-  };
-
-  const getSizeClasses = (size) => {
-    switch(size) {
-      case 'sm': return 'text-xs px-2 py-0.5';
-      case 'lg': return 'text-sm px-3 py-1';
-      default: return 'text-xs px-2.5 py-0.5';
-    }
-  };
-
-  return (
-    <div
-      ref={ref}
-      className={cn(
-        'inline-flex items-center font-medium border',
-        rounded ? 'rounded-full' : 'rounded-md',
-        getVariantClasses(variant),
-        getSizeClasses(size),
-        className
-      )}
-      {...props}
-    >
-      {children}
-      {isClosable && (
-        <button
-          type="button"
-          className="ml-1 -mr-1 h-3.5 w-3.5 rounded-full inline-flex items-center justify-center hover:bg-white/20"
-          onClick={onClose}
-        >
-          <span className="sr-only">Close</span>
-          <svg className="h-3 w-3" viewBox="0 0 24 24">
-            <path fill="currentColor" d="M18.3 5.71a.996.996 0 00-1.41 0L12 10.59 7.11 5.7a.996.996 0 00-1.41 0 .996.996 0 000 1.41L10.59 12 5.7 16.89a.996.996 0 101.41 1.41L12 13.41l4.89 4.89a.996.996 0 101.41-1.41L13.41 12l4.89-4.89c.38-.38.38-1.02 0-1.4z" />
-          </svg>
-        </button>
-      )}
-    </div>
-  );
-});
-
-Badge.displayName = 'Badge';
-
-export { Badge };`,
 
   'use-toast.tsx': `// Stub complet pour use-toast.tsx
 import { ReactNode } from 'react';
