@@ -276,6 +276,47 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
 Input.displayName = 'Input';
 
 export { Input };`;
+  } else if (name === 'button.tsx') {
+    // Création spécifique pour le composant Button
+    content = `import React from 'react';
+import { cn } from '@/lib/utils';
+
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  children?: React.ReactNode;
+  className?: string;
+  type?: 'button' | 'submit' | 'reset';
+  disabled?: boolean;
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+}
+
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
+  children,
+  className,
+  type = 'button',
+  disabled,
+  onClick,
+  ...props
+}, ref) => {
+  return (
+    <button
+      ref={ref}
+      type={type}
+      className={cn(
+        'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none',
+        className
+      )}
+      disabled={disabled}
+      onClick={onClick}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+});
+
+Button.displayName = 'Button';
+
+export { Button };`;
   } else {
     // Extraire le nom du composant sans l'extension
     const componentName = path.basename(name, '.tsx');
