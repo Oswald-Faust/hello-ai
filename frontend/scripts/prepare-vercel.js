@@ -277,7 +277,7 @@ Input.displayName = 'Input';
 
 export { Input };`;
   } else if (name === 'button.tsx') {
-    // Création spécifique pour le composant Button avec la propriété variant
+    // Création spécifique pour le composant Button avec les propriétés variant et size
     content = `import React from 'react';
 import { cn } from '@/lib/utils';
 
@@ -287,6 +287,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   type?: 'button' | 'submit' | 'reset';
   disabled?: boolean;
   variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
+  size?: 'default' | 'sm' | 'lg' | 'icon' | 'xs';
   onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
@@ -296,6 +297,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
   type = 'button',
   disabled,
   variant = 'default',
+  size = 'default',
   onClick,
   ...props
 }, ref) => {
@@ -317,13 +319,30 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
     }
   };
   
+  // Définir des classes basées sur la taille
+  const getSizeClasses = (size) => {
+    switch(size) {
+      case 'sm':
+        return 'h-9 px-3 rounded-md text-xs';
+      case 'xs':
+        return 'h-7 px-2 rounded-md text-xs';
+      case 'lg':
+        return 'h-11 px-8 rounded-md text-base';
+      case 'icon':
+        return 'h-10 w-10 rounded-full p-0';
+      default:
+        return 'h-10 px-4 py-2 rounded-md text-sm';
+    }
+  };
+  
   return (
     <button
       ref={ref}
       type={type}
       className={cn(
-        'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none',
+        'inline-flex items-center justify-center font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none',
         getVariantClasses(variant),
+        getSizeClasses(size),
         className
       )}
       disabled={disabled}
