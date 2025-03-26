@@ -22,6 +22,8 @@ const components = [
   { name: 'button', target: 'Button' },
   { name: 'card', target: 'Card' },
   { name: 'input', target: 'Input' },
+  { name: 'label', target: 'Label', create: true },
+  { name: 'alert', target: 'Alert', create: true },
   // Composants manquants à créer
   { name: 'table', target: 'Table', create: true },
   { name: 'dialog', target: 'Dialog', create: true },
