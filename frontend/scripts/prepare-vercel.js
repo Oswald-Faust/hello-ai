@@ -833,11 +833,11 @@ export { Label };`,
   'date-picker.tsx': `import React from 'react';
 import { cn } from '@/lib/utils';
 
-export interface DatePickerProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface DatePickerProps {
   children?: React.ReactNode;
   className?: string;
   value?: Date;
-  onChange?: (date: Date) => void;
+  onDateChange?: (date: Date) => void;
   minDate?: Date;
   maxDate?: Date;
   disabled?: boolean;
@@ -848,11 +848,11 @@ export interface DatePickerProps extends React.HTMLAttributes<HTMLDivElement> {
   timeIntervals?: number;
 }
 
-const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(({
+const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps & React.HTMLAttributes<HTMLDivElement>>(({
   children,
   className,
   value,
-  onChange,
+  onDateChange,
   minDate,
   maxDate,
   disabled,
