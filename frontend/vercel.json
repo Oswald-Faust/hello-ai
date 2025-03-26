@@ -2,6 +2,5 @@
   "version": 2,
   "buildCommand": "npm run prepare-vercel && npm run vercel-build",
   "installCommand": "npm install --no-scripts && npm rebuild",
-  "framework": "nextjs",
-  "ignoreCommand": "echo 'Ignoring package-manager warnings'"
+  "framework": "nextjs"
 } 
