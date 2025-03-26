@@ -8,8 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "postinstall": "IS_VERCEL_DEPLOYMENT=true patch-package || true",
-    "vercel-build": "next build",
-    "prepare-vercel": "node scripts/prepare-vercel.js"
+    "vercel-build": "next build"
   },
   "dependencies": {
     "@chakra-ui/icons": "^2.2.4",

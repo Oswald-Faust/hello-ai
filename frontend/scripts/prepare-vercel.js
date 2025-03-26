@@ -227,6 +227,55 @@ const Label = React.forwardRef<HTMLLabelElement, LabelProps>(({
 Label.displayName = 'Label';
 
 export { Label };`;
+  } else if (name === 'input.tsx') {
+    // Création spécifique pour le composant Input
+    content = `import React from 'react';
+import { cn } from '@/lib/utils';
+
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  className?: string;
+  type?: string;
+  id?: string;
+  placeholder?: string;
+  value?: string | number;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  required?: boolean;
+  disabled?: boolean;
+}
+
+const Input = React.forwardRef<HTMLInputElement, InputProps>(({
+  className,
+  type = 'text',
+  id,
+  placeholder,
+  value,
+  onChange,
+  required,
+  disabled,
+  ...props
+}, ref) => {
+  return (
+    <input
+      ref={ref}
+      className={cn(
+        'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+        className
+      )}
+      type={type}
+      id={id}
+      placeholder={placeholder}
+      value={value}
+      onChange={onChange}
+      required={required}
+      disabled={disabled}
+      {...props}
+    />
+  );
+});
+
+Input.displayName = 'Input';
+
+export { Input };`;
   } else {
     // Extraire le nom du composant sans l'extension
     const componentName = path.basename(name, '.tsx');
