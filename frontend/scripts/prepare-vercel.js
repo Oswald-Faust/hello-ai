@@ -21,264 +21,9 @@ function cleanupCapitalizedFiles() {
   });
 }
 
-// Fonction pour créer un stub de composant
-function createComponentStub(name, isAdvanced = false) {
-  const targetPath = path.join(componentsDir, name);
-  
-  if (fs.existsSync(targetPath)) {
-    console.log(`${name} existe déjà, ignoré`);
-    return;
-  }
-  
-  let content = '';
-  
-  if (name === 'alert.tsx') {
-    content = `import * as React from "react";
-import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "@/lib/utils";
-
-const alertVariants = cva(
-  "relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground",
-  {
-    variants: {
-      variant: {
-        default: "bg-background text-foreground",
-        destructive:
-          "border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-    },
-  }
-);
-
-const Alert = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof alertVariants>
->(({ className, variant, ...props }, ref) => (
-  <div
-    ref={ref}
-    role="alert"
-    className={cn(alertVariants({ variant }), className)}
-    {...props}
-  />
-));
-Alert.displayName = "Alert";
-
-const AlertTitle = React.forwardRef<
-  HTMLParagraphElement,
-  React.HTMLAttributes<HTMLHeadingElement>
->(({ className, ...props }, ref) => (
-  <h5
-    ref={ref}
-    className={cn("mb-1 font-medium leading-none tracking-tight", className)}
-    {...props}
-  />
-));
-AlertTitle.displayName = "AlertTitle";
-
-const AlertDescription = React.forwardRef<
-  HTMLParagraphElement,
-  React.HTMLAttributes<HTMLParagraphElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("text-sm [&_p]:leading-relaxed", className)}
-    {...props}
-  />
-));
-AlertDescription.displayName = "AlertDescription";
-
-export { Alert, AlertTitle, AlertDescription };`;
-  } else if (name === 'card.tsx') {
-    content = `import React, { HTMLAttributes, forwardRef } from 'react';
-import { cn } from '@/lib/utils';
-
-export interface CardProps extends HTMLAttributes<HTMLDivElement> {}
-
-const Card = forwardRef<HTMLDivElement, CardProps>(
-  ({ className, ...props }, ref) => {
-    return (
-      <div
-        ref={ref}
-        className={cn(
-          'rounded-lg border bg-card shadow-sm',
-          className
-        )}
-        {...props}
-      />
-    );
-  }
-);
-Card.displayName = 'Card';
-
-export interface CardHeaderProps extends HTMLAttributes<HTMLDivElement> {}
-
-const CardHeader = forwardRef<HTMLDivElement, CardHeaderProps>(
-  ({ className, ...props }, ref) => {
-    return (
-      <div
-        ref={ref}
-        className={cn('flex flex-col space-y-1.5 p-6', className)}
-        {...props}
-      />
-    );
-  }
-);
-CardHeader.displayName = 'CardHeader';
-
-export interface CardTitleProps extends HTMLAttributes<HTMLHeadingElement> {}
-
-const CardTitle = forwardRef<HTMLHeadingElement, CardTitleProps>(
-  ({ className, ...props }, ref) => {
-    return (
-      <h3
-        ref={ref}
-        className={cn('text-2xl font-semibold leading-none tracking-tight text-black', className)}
-        {...props}
-      />
-    );
-  }
-);
-CardTitle.displayName = 'CardTitle';
-
-export interface CardDescriptionProps extends HTMLAttributes<HTMLParagraphElement> {}
-
-const CardDescription = forwardRef<HTMLParagraphElement, CardDescriptionProps>(
-  ({ className, ...props }, ref) => {
-    return (
-      <p
-        ref={ref}
-        className={cn('text-sm text-black/70', className)}
-        {...props}
-      />
-    );
-  }
-);
-CardDescription.displayName = 'CardDescription';
-
-export interface CardContentProps extends HTMLAttributes<HTMLDivElement> {}
-
-const CardContent = forwardRef<HTMLDivElement, CardContentProps>(
-  ({ className, ...props }, ref) => {
-    return (
-      <div ref={ref} className={cn('p-6 pt-0 text-black', className)} {...props} />
-    );
-  }
-);
-CardContent.displayName = 'CardContent';
-
-export interface CardFooterProps extends HTMLAttributes<HTMLDivElement> {}
-
-const CardFooter = forwardRef<HTMLDivElement, CardFooterProps>(
-  ({ className, ...props }, ref) => {
-    return (
-      <div
-        ref={ref}
-        className={cn('flex items-center p-6 pt-0 text-black', className)}
-        {...props}
-      />
-    );
-  }
-);
-CardFooter.displayName = 'CardFooter';
-
-export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter };`;
-  } else if (name === 'use-toast.tsx') {
-    content = `// Stub pour use-toast.tsx 
-export const toast = {
-  success: (message) => console.log('Toast success:', message),
-  error: (message) => console.log('Toast error:', message),
-  warning: (message) => console.log('Toast warning:', message),
-  info: (message) => console.log('Toast info:', message),
-};
-
-export default toast;`;
-  } else if (name === 'label.tsx') {
-    // Création spécifique pour le composant Label avec htmlFor
-    content = `import React from 'react';
-import { cn } from '@/lib/utils';
-
-export interface LabelProps extends React.LabelHTMLAttributes<HTMLLabelElement> {
-  children?: React.ReactNode;
-  className?: string;
-  htmlFor?: string;
-}
-
-const Label = React.forwardRef<HTMLLabelElement, LabelProps>(({ 
-  children, 
-  className,
-  htmlFor,
-  ...props 
-}, ref) => {
-  return (
-    <label 
-      ref={ref}
-      htmlFor={htmlFor}
-      className={cn('text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70', className)} 
-      {...props}
-    >
-      {children}
-    </label>
-  );
-});
-
-Label.displayName = 'Label';
-
-export { Label };`;
-  } else if (name === 'input.tsx') {
-    // Création spécifique pour le composant Input
-    content = `import React from 'react';
-import { cn } from '@/lib/utils';
-
-export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  className?: string;
-  type?: string;
-  id?: string;
-  placeholder?: string;
-  value?: string | number;
-  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  required?: boolean;
-  disabled?: boolean;
-}
-
-const Input = React.forwardRef<HTMLInputElement, InputProps>(({
-  className,
-  type = 'text',
-  id,
-  placeholder,
-  value,
-  onChange,
-  required,
-  disabled,
-  ...props
-}, ref) => {
-  return (
-    <input
-      ref={ref}
-      className={cn(
-        'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
-        className
-      )}
-      type={type}
-      id={id}
-      placeholder={placeholder}
-      value={value}
-      onChange={onChange}
-      required={required}
-      disabled={disabled}
-      {...props}
-    />
-  );
-});
-
-Input.displayName = 'Input';
-
-export { Input };`;
-  } else if (name === 'button.tsx') {
-    // Création spécifique pour le composant Button avec les propriétés variant et size
-    content = `import React from 'react';
+// Définition des composants
+const componentDefinitions = {
+  'button.tsx': `import React from 'react';
 import { cn } from '@/lib/utils';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -286,9 +31,11 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   className?: string;
   type?: 'button' | 'submit' | 'reset';
   disabled?: boolean;
-  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
-  size?: 'default' | 'sm' | 'lg' | 'icon' | 'xs';
+  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link' | string;
+  size?: 'default' | 'sm' | 'lg' | 'icon' | 'xs' | string;
   onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  asChild?: boolean;
+  isLoading?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
@@ -299,6 +46,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
   variant = 'default',
   size = 'default',
   onClick,
+  asChild,
+  isLoading,
   ...props
 }, ref) => {
   // Définir des classes basées sur la variante
@@ -343,9 +92,10 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
         'inline-flex items-center justify-center font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none',
         getVariantClasses(variant),
         getSizeClasses(size),
+        isLoading && 'opacity-70 cursor-wait',
         className
       )}
-      disabled={disabled}
+      disabled={disabled || isLoading}
       onClick={onClick}
       {...props}
     >
@@ -356,36 +106,780 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
 
 Button.displayName = 'Button';
 
-export { Button };`;
-  } else {
-    // Extraire le nom du composant sans l'extension
-    const componentName = path.basename(name, '.tsx');
-    // Première lettre en majuscule pour le nom du composant
-    const capitalizedName = componentName.charAt(0).toUpperCase() + componentName.slice(1);
-    
-    content = `// Stub composant pour ${capitalizedName}
-import React from 'react';
+export { Button };`,
+
+  'input.tsx': `import React from 'react';
 import { cn } from '@/lib/utils';
 
-export interface ${capitalizedName}Props {
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  className?: string;
+  type?: string;
+  id?: string;
+  name?: string;
+  placeholder?: string;
+  value?: string | number;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+  onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
+  required?: boolean;
+  disabled?: boolean;
+  error?: boolean;
+  fullWidth?: boolean;
+  readOnly?: boolean;
+  size?: 'default' | 'sm' | 'lg';
+  prefix?: React.ReactNode;
+  suffix?: React.ReactNode;
+}
+
+const Input = React.forwardRef<HTMLInputElement, InputProps>(({
+  className,
+  type = 'text',
+  id,
+  name,
+  placeholder,
+  value,
+  onChange,
+  onBlur,
+  onFocus,
+  required,
+  disabled,
+  error,
+  fullWidth,
+  readOnly,
+  size = 'default',
+  prefix,
+  suffix,
+  ...props
+}, ref) => {
+  const getSizeClasses = (size) => {
+    switch(size) {
+      case 'sm': return 'h-8 text-xs px-2.5';
+      case 'lg': return 'h-12 text-base px-4';
+      default: return 'h-10 text-sm px-3';
+    }
+  };
+
+  return (
+    <input
+      ref={ref}
+      className={cn(
+        'flex w-full rounded-md border border-input bg-background py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+        error && 'border-destructive',
+        fullWidth && 'w-full',
+        getSizeClasses(size),
+        className
+      )}
+      type={type}
+      id={id}
+      name={name}
+      placeholder={placeholder}
+      value={value}
+      onChange={onChange}
+      onBlur={onBlur}
+      onFocus={onFocus}
+      required={required}
+      disabled={disabled}
+      readOnly={readOnly}
+      {...props}
+    />
+  );
+});
+
+Input.displayName = 'Input';
+
+export { Input };`,
+
+  'label.tsx': `import React from 'react';
+import { cn } from '@/lib/utils';
+
+export interface LabelProps extends React.LabelHTMLAttributes<HTMLLabelElement> {
   children?: React.ReactNode;
+  className?: string;
+  htmlFor?: string;
+  required?: boolean;
+  disabled?: boolean;
+  error?: boolean;
+}
+
+const Label = React.forwardRef<HTMLLabelElement, LabelProps>(({ 
+  children, 
+  className,
+  htmlFor,
+  required,
+  disabled,
+  error,
+  ...props 
+}, ref) => {
+  return (
+    <label 
+      ref={ref}
+      htmlFor={htmlFor}
+      className={cn(
+        'text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70',
+        disabled && 'opacity-70 cursor-not-allowed',
+        error && 'text-destructive',
+        className
+      )} 
+      {...props}
+    >
+      {children}
+      {required && <span className="ml-1 text-destructive">*</span>}
+    </label>
+  );
+});
+
+Label.displayName = 'Label';
+
+export { Label };`,
+
+  'textarea.tsx': `import React from 'react';
+import { cn } from '@/lib/utils';
+
+export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+  className?: string;
+  id?: string;
+  name?: string;
+  placeholder?: string;
+  value?: string;
+  onChange?: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  onBlur?: (e: React.FocusEvent<HTMLTextAreaElement>) => void;
+  required?: boolean;
+  disabled?: boolean;
+  error?: boolean;
+  fullWidth?: boolean;
+  rows?: number;
+  maxLength?: number;
+  minLength?: number;
+  readOnly?: boolean;
+  resize?: 'none' | 'vertical' | 'horizontal' | 'both';
+}
+
+const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({
+  className,
+  id,
+  name,
+  placeholder,
+  value,
+  onChange,
+  onBlur,
+  required,
+  disabled,
+  error,
+  fullWidth,
+  rows = 4,
+  maxLength,
+  minLength,
+  readOnly,
+  resize = 'vertical',
+  ...props
+}, ref) => {
+  const getResizeClass = (resize) => {
+    switch(resize) {
+      case 'none': return 'resize-none';
+      case 'horizontal': return 'resize-x';
+      case 'both': return 'resize';
+      default: return 'resize-y';
+    }
+  };
+
+  return (
+    <textarea
+      ref={ref}
+      className={cn(
+        'flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+        error && 'border-destructive',
+        fullWidth && 'w-full',
+        getResizeClass(resize),
+        className
+      )}
+      id={id}
+      name={name}
+      placeholder={placeholder}
+      value={value}
+      onChange={onChange}
+      onBlur={onBlur}
+      required={required}
+      disabled={disabled}
+      rows={rows}
+      maxLength={maxLength}
+      minLength={minLength}
+      readOnly={readOnly}
+      {...props}
+    />
+  );
+});
+
+Textarea.displayName = 'Textarea';
+
+export { Textarea };`,
+
+  'alert.tsx': `import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "@/lib/utils";
+
+const alertVariants = cva(
+  "relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground",
+  {
+    variants: {
+      variant: {
+        default: "bg-background text-foreground",
+        destructive:
+          "border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive",
+        success: "border-success/50 text-success dark:border-success [&>svg]:text-success",
+        warning: "border-warning/50 text-warning dark:border-warning [&>svg]:text-warning",
+        info: "border-info/50 text-info dark:border-info [&>svg]:text-info",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  }
+);
+
+export interface AlertProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof alertVariants> {
+  variant?: 'default' | 'destructive' | 'success' | 'warning' | 'info';
+  title?: string;
+  description?: string;
+  icon?: React.ReactNode;
+  action?: React.ReactNode;
+  onClose?: () => void;
+}
+
+const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
+  ({ className, variant, title, description, icon, action, onClose, ...props }, ref) => (
+  <div
+    ref={ref}
+    role="alert"
+    className={cn(alertVariants({ variant }), className)}
+    {...props}
+  />
+));
+Alert.displayName = "Alert";
+
+const AlertTitle = React.forwardRef<
+  HTMLParagraphElement,
+  React.HTMLAttributes<HTMLHeadingElement>
+>(({ className, ...props }, ref) => (
+  <h5
+    ref={ref}
+    className={cn("mb-1 font-medium leading-none tracking-tight", className)}
+    {...props}
+  />
+));
+AlertTitle.displayName = "AlertTitle";
+
+const AlertDescription = React.forwardRef<
+  HTMLParagraphElement,
+  React.HTMLAttributes<HTMLParagraphElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn("text-sm [&_p]:leading-relaxed", className)}
+    {...props}
+  />
+));
+AlertDescription.displayName = "AlertDescription";
+
+export { Alert, AlertTitle, AlertDescription };`,
+
+  'card.tsx': `import React, { HTMLAttributes, forwardRef } from 'react';
+import { cn } from '@/lib/utils';
+
+export interface CardProps extends HTMLAttributes<HTMLDivElement> {
+  variant?: 'default' | 'bordered' | 'ghost';
+  isHoverable?: boolean;
+  isCompact?: boolean;
+}
+
+const Card = forwardRef<HTMLDivElement, CardProps>(
+  ({ className, variant = 'default', isHoverable, isCompact, ...props }, ref) => {
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          'rounded-lg bg-card shadow-sm',
+          variant === 'bordered' && 'border',
+          variant === 'ghost' && 'border-none shadow-none',
+          isHoverable && 'transition-shadow hover:shadow-md',
+          isCompact && 'p-4',
+          className
+        )}
+        {...props}
+      />
+    );
+  }
+);
+Card.displayName = 'Card';
+
+export interface CardHeaderProps extends HTMLAttributes<HTMLDivElement> {
   className?: string;
 }
 
-const ${capitalizedName}: React.FC<${capitalizedName}Props> = ({ 
-  children, 
-  className, 
-  ...props 
-}) => {
+const CardHeader = forwardRef<HTMLDivElement, CardHeaderProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <div
+        ref={ref}
+        className={cn('flex flex-col space-y-1.5 p-6', className)}
+        {...props}
+      />
+    );
+  }
+);
+CardHeader.displayName = 'CardHeader';
+
+export interface CardTitleProps extends HTMLAttributes<HTMLHeadingElement> {
+  className?: string;
+}
+
+const CardTitle = forwardRef<HTMLHeadingElement, CardTitleProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <h3
+        ref={ref}
+        className={cn('text-2xl font-semibold leading-none tracking-tight text-black', className)}
+        {...props}
+      />
+    );
+  }
+);
+CardTitle.displayName = 'CardTitle';
+
+export interface CardDescriptionProps extends HTMLAttributes<HTMLParagraphElement> {
+  className?: string;
+}
+
+const CardDescription = forwardRef<HTMLParagraphElement, CardDescriptionProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <p
+        ref={ref}
+        className={cn('text-sm text-black/70', className)}
+        {...props}
+      />
+    );
+  }
+);
+CardDescription.displayName = 'CardDescription';
+
+export interface CardContentProps extends HTMLAttributes<HTMLDivElement> {
+  className?: string;
+}
+
+const CardContent = forwardRef<HTMLDivElement, CardContentProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <div ref={ref} className={cn('p-6 pt-0 text-black', className)} {...props} />
+    );
+  }
+);
+CardContent.displayName = 'CardContent';
+
+export interface CardFooterProps extends HTMLAttributes<HTMLDivElement> {
+  className?: string;
+}
+
+const CardFooter = forwardRef<HTMLDivElement, CardFooterProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <div
+        ref={ref}
+        className={cn('flex items-center p-6 pt-0 text-black', className)}
+        {...props}
+      />
+    );
+  }
+);
+CardFooter.displayName = 'CardFooter';
+
+export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter };`,
+
+  'table.tsx': `import React from 'react';
+import { cn } from '@/lib/utils';
+
+const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
+  ({ className, ...props }, ref) => (
+    <div className="relative w-full overflow-auto">
+      <table
+        ref={ref}
+        className={cn("w-full caption-bottom text-sm", className)}
+        {...props}
+      />
+    </div>
+  )
+);
+Table.displayName = "Table";
+
+const TableHeader = React.forwardRef<
+  HTMLTableSectionElement,
+  React.HTMLAttributes<HTMLTableSectionElement>
+>(({ className, ...props }, ref) => (
+  <thead ref={ref} className={cn("[&_tr]:border-b", className)} {...props} />
+));
+TableHeader.displayName = "TableHeader";
+
+const TableBody = React.forwardRef<
+  HTMLTableSectionElement,
+  React.HTMLAttributes<HTMLTableSectionElement>
+>(({ className, ...props }, ref) => (
+  <tbody
+    ref={ref}
+    className={cn("[&_tr:last-child]:border-0", className)}
+    {...props}
+  />
+));
+TableBody.displayName = "TableBody";
+
+const TableFooter = React.forwardRef<
+  HTMLTableSectionElement,
+  React.HTMLAttributes<HTMLTableSectionElement>
+>(({ className, ...props }, ref) => (
+  <tfoot
+    ref={ref}
+    className={cn("bg-muted/50 font-medium [&>tr]:last:border-b-0", className)}
+    {...props}
+  />
+));
+TableFooter.displayName = "TableFooter";
+
+const TableRow = React.forwardRef<
+  HTMLTableRowElement,
+  React.HTMLAttributes<HTMLTableRowElement>
+>(({ className, ...props }, ref) => (
+  <tr
+    ref={ref}
+    className={cn(
+      "border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
+      className
+    )}
+    {...props}
+  />
+));
+TableRow.displayName = "TableRow";
+
+const TableHead = React.forwardRef<
+  HTMLTableCellElement,
+  React.ThHTMLAttributes<HTMLTableCellElement>
+>(({ className, ...props }, ref) => (
+  <th
+    ref={ref}
+    className={cn(
+      "h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0",
+      className
+    )}
+    {...props}
+  />
+));
+TableHead.displayName = "TableHead";
+
+const TableCell = React.forwardRef<
+  HTMLTableCellElement,
+  React.TdHTMLAttributes<HTMLTableCellElement>
+>(({ className, ...props }, ref) => (
+  <td
+    ref={ref}
+    className={cn("p-4 align-middle [&:has([role=checkbox])]:pr-0", className)}
+    {...props}
+  />
+));
+TableCell.displayName = "TableCell";
+
+const TableCaption = React.forwardRef<
+  HTMLTableCaptionElement,
+  React.HTMLAttributes<HTMLTableCaptionElement>
+>(({ className, ...props }, ref) => (
+  <caption
+    ref={ref}
+    className={cn("mt-4 text-sm text-muted-foreground", className)}
+    {...props}
+  />
+));
+TableCaption.displayName = "TableCaption";
+
+export {
+  Table,
+  TableHeader,
+  TableBody,
+  TableFooter,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableCaption,
+};`,
+
+  'dialog.tsx': `import React from 'react';
+import { cn } from '@/lib/utils';
+
+interface DialogProps extends React.DialogHTMLAttributes<HTMLDialogElement> {
+  open?: boolean;
+  onClose?: () => void;
+  children?: React.ReactNode;
+}
+
+const Dialog: React.FC<DialogProps> = ({ open, onClose, children, className, ...props }) => {
+  const dialogRef = React.useRef<HTMLDialogElement>(null);
+
+  React.useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    if (open) {
+      dialog.showModal();
+    } else {
+      dialog.close();
+    }
+  }, [open]);
+
+  const handleClose = () => {
+    if (onClose) onClose();
+  };
+
   return (
-    <div 
-      className={cn('${componentName}-component', className)} 
+    <dialog
+      ref={dialogRef}
+      className={cn(
+        'max-w-lg rounded-lg shadow-lg backdrop:bg-black backdrop:bg-opacity-50 p-0',
+        className
+      )}
+      onClose={handleClose}
+      {...props}
+    >
+      {children}
+    </dialog>
+  );
+};
+
+const DialogContent: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({ className, children, ...props }) => (
+  <div className={cn('p-6', className)} {...props}>
+    {children}
+  </div>
+);
+
+const DialogHeader: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({ className, children, ...props }) => (
+  <div className={cn('flex items-center justify-between p-4 border-b', className)} {...props}>
+    {children}
+  </div>
+);
+
+const DialogTitle: React.FC<React.HTMLAttributes<HTMLHeadingElement>> = ({ className, children, ...props }) => (
+  <h2 className={cn('text-lg font-semibold', className)} {...props}>
+    {children}
+  </h2>
+);
+
+const DialogFooter: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({ className, children, ...props }) => (
+  <div className={cn('flex justify-end gap-2 p-4 border-t', className)} {...props}>
+    {children}
+  </div>
+);
+
+const DialogClose: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>> = ({ className, onClick, children, ...props }) => {
+  return (
+    <button
+      className={cn('text-gray-500 hover:text-gray-700', className)}
+      onClick={onClick}
+      {...props}
+    >
+      {children || '×'}
+    </button>
+  );
+};
+
+export { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose };`,
+
+  'badge.tsx': `import React from 'react';
+import { cn } from '@/lib/utils';
+
+export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
+  variant?: 'default' | 'secondary' | 'outline' | 'destructive' | 'success' | 'warning' | 'info';
+  size?: 'default' | 'sm' | 'lg';
+  rounded?: boolean;
+  isClosable?: boolean;
+  onClose?: () => void;
+}
+
+const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(({
+  className,
+  variant = 'default',
+  size = 'default',
+  rounded = false,
+  isClosable = false,
+  onClose,
+  children,
+  ...props
+}, ref) => {
+  const getVariantClasses = (variant) => {
+    switch(variant) {
+      case 'secondary':
+        return 'bg-secondary text-secondary-foreground';
+      case 'destructive':
+        return 'bg-destructive text-destructive-foreground';
+      case 'success':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'warning':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'info':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'outline':
+        return 'bg-transparent border border-input text-foreground';
+      default:
+        return 'bg-primary text-primary-foreground';
+    }
+  };
+
+  const getSizeClasses = (size) => {
+    switch(size) {
+      case 'sm': return 'text-xs px-2 py-0.5';
+      case 'lg': return 'text-sm px-3 py-1';
+      default: return 'text-xs px-2.5 py-0.5';
+    }
+  };
+
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        'inline-flex items-center font-medium border',
+        rounded ? 'rounded-full' : 'rounded-md',
+        getVariantClasses(variant),
+        getSizeClasses(size),
+        className
+      )}
+      {...props}
+    >
+      {children}
+      {isClosable && (
+        <button
+          type="button"
+          className="ml-1 -mr-1 h-3.5 w-3.5 rounded-full inline-flex items-center justify-center hover:bg-white/20"
+          onClick={onClose}
+        >
+          <span className="sr-only">Close</span>
+          <svg className="h-3 w-3" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M18.3 5.71a.996.996 0 00-1.41 0L12 10.59 7.11 5.7a.996.996 0 00-1.41 0 .996.996 0 000 1.41L10.59 12 5.7 16.89a.996.996 0 101.41 1.41L12 13.41l4.89 4.89a.996.996 0 101.41-1.41L13.41 12l4.89-4.89c.38-.38.38-1.02 0-1.4z" />
+          </svg>
+        </button>
+      )}
+    </div>
+  );
+});
+
+Badge.displayName = 'Badge';
+
+export { Badge };`,
+
+  'use-toast.tsx': `// Stub complet pour use-toast.tsx
+import { ReactNode } from 'react';
+
+type ToastProps = {
+  id?: string;
+  title?: string;
+  description?: string;
+  action?: ReactNode;
+  variant?: 'default' | 'destructive' | 'success';
+  duration?: number;
+};
+
+type ToastActionElement = {
+  altText: string;
+  onClick: () => void;
+  children: ReactNode;
+};
+
+const toast = {
+  success: (props: string | ToastProps) => {
+    console.log('Toast success:', typeof props === 'string' ? props : props.title);
+    return { id: '1', dismiss: () => {} };
+  },
+  error: (props: string | ToastProps) => {
+    console.log('Toast error:', typeof props === 'string' ? props : props.title);
+    return { id: '2', dismiss: () => {} };
+  },
+  warning: (props: string | ToastProps) => {
+    console.log('Toast warning:', typeof props === 'string' ? props : props.title);
+    return { id: '3', dismiss: () => {} };
+  },
+  info: (props: string | ToastProps) => {
+    console.log('Toast info:', typeof props === 'string' ? props : props.title);
+    return { id: '4', dismiss: () => {} };
+  },
+  destructive: (props: string | ToastProps) => {
+    console.log('Toast destructive:', typeof props === 'string' ? props : props.title);
+    return { id: '5', dismiss: () => {} };
+  },
+  default: (props: string | ToastProps) => {
+    console.log('Toast default:', typeof props === 'string' ? props : props.title);
+    return { id: '6', dismiss: () => {} };
+  },
+  custom: (props: ToastProps) => {
+    console.log('Toast custom:', props.title);
+    return { id: '7', dismiss: () => {} };
+  },
+  dismiss: (toastId?: string) => {
+    console.log('Toast dismiss:', toastId);
+  },
+  update: (toastId: string, props: ToastProps) => {
+    console.log('Toast update:', toastId, props);
+  },
+};
+
+function useToast() {
+  return { toast };
+}
+
+export { toast, useToast };
+export default useToast;`,
+};
+
+// Fonction pour créer un stub de composant
+function createComponentStub(name) {
+  const targetPath = path.join(componentsDir, name);
+  
+  if (fs.existsSync(targetPath)) {
+    console.log(`${name} existe déjà, ignoré`);
+    return;
+  }
+  
+  let content = componentDefinitions[name];
+  
+  if (!content) {
+    // Stub générique pour les composants non prédéfinis
+    const componentName = path.basename(name, '.tsx');
+    const capitalizedName = componentName.charAt(0).toUpperCase() + componentName.slice(1);
+    
+    content = `// Stub générique pour ${capitalizedName}
+import React from 'react';
+import { cn } from '@/lib/utils';
+
+export interface ${capitalizedName}Props extends React.HTMLAttributes<HTMLDivElement> {
+  children?: React.ReactNode;
+  className?: string;
+  variant?: string;
+  size?: string;
+  disabled?: boolean;
+}
+
+const ${capitalizedName} = React.forwardRef<HTMLDivElement, ${capitalizedName}Props>(({
+  children,
+  className,
+  variant,
+  size,
+  disabled,
+  ...props
+}, ref) => {
+  return (
+    <div
+      ref={ref}
+      className={cn('${componentName}-component', className)}
+      aria-disabled={disabled}
       {...props}
     >
       {children}
     </div>
   );
-};
+});
+
+${capitalizedName}.displayName = '${capitalizedName}';
 
 export { ${capitalizedName} };`;
   }
@@ -398,18 +892,29 @@ export { ${capitalizedName} };`;
 cleanupCapitalizedFiles();
 
 // Liste des composants à générer
-const components = [
-  'textarea.tsx', 
-  'button.tsx', 
-  'card.tsx', 
-  'input.tsx', 
-  'label.tsx', 
-  'alert.tsx', 
-  'table.tsx', 
-  'dialog.tsx', 
-  'badge.tsx', 
-  'use-toast.tsx'
-];
+const components = Object.keys(componentDefinitions).concat([
+  'select.tsx',
+  'checkbox.tsx',
+  'radio.tsx',
+  'switch.tsx',
+  'avatar.tsx',
+  'progress.tsx',
+  'slider.tsx',
+  'toast.tsx',
+  'popover.tsx',
+  'dropdown.tsx',
+  'tabs.tsx',
+  'accordion.tsx',
+  'tooltip.tsx',
+  'calendar.tsx',
+  'date-picker.tsx'
+]);
+
+// S'assurer que le répertoire existe
+if (!fs.existsSync(componentsDir)) {
+  fs.mkdirSync(componentsDir, { recursive: true });
+  console.log(`Créé: répertoire des composants UI`);
+}
 
 // Créer tous les composants
 components.forEach(component => createComponentStub(component));
@@ -426,9 +931,32 @@ if (!fs.existsSync(nextAuthDir)) {
 export const getServerSession = async () => {
   return { user: null };
 };
+
+export const auth = () => {
+  return { user: null };
+};
 `;
   fs.writeFileSync(nextAuthPath, nextAuthContent);
   console.log(`Créé: next.ts (stub)`);
+
+  // Créer également un fichier minimal pour [...nextauth]/route.ts
+  const nextAuthRouteDir = path.join(nextAuthDir, '[...nextauth]');
+  if (!fs.existsSync(nextAuthRouteDir)) {
+    fs.mkdirSync(nextAuthRouteDir, { recursive: true });
+  }
+  
+  const nextAuthRoutePath = path.join(nextAuthRouteDir, 'route.ts');
+  const nextAuthRouteContent = `// Stub pour next-auth API route
+import { NextApiRequest, NextApiResponse } from 'next';
+
+function handler() {
+  return { auth: null };
+}
+
+export { handler as GET, handler as POST };
+`;
+  fs.writeFileSync(nextAuthRoutePath, nextAuthRouteContent);
+  console.log(`Créé: [...nextauth]/route.ts (stub)`);
 }
 
 console.log('Préparation terminée!'); 
