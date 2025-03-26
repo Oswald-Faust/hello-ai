@@ -947,13 +947,19 @@ export const auth = () => {
   
   const nextAuthRoutePath = path.join(nextAuthRouteDir, 'route.ts');
   const nextAuthRouteContent = `// Stub pour next-auth API route
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextRequest } from 'next/server';
 
-function handler() {
-  return { auth: null };
+export async function GET() {
+  return new Response(JSON.stringify({ success: true }), {
+    headers: { 'content-type': 'application/json' },
+  });
 }
 
-export { handler as GET, handler as POST };
+export async function POST() {
+  return new Response(JSON.stringify({ success: true }), {
+    headers: { 'content-type': 'application/json' },
+  });
+}
 `;
   fs.writeFileSync(nextAuthRoutePath, nextAuthRouteContent);
   console.log(`Créé: [...nextauth]/route.ts (stub)`);
