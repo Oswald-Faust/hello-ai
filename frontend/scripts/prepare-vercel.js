@@ -4,73 +4,189 @@ const path = require('path');
 
 const componentsDir = path.join(__dirname, '..', 'src', 'components', 'ui');
 
-// Fonction pour créer un composant redirecteur
-function createRedirectorComponent(name, targetName) {
-  let content = '';
+// Supprimer les fichiers en majuscules potentiellement en double
+function cleanupCapitalizedFiles() {
+  const files = ['Alert.tsx', 'Button.tsx', 'Card.tsx', 'Label.tsx', 'Input.tsx', 'Textarea.tsx'];
   
-  // Cas spéciaux pour les composants qui ont des sous-composants
-  if (name === 'alert') {
-    content = `// Redirecteur vers ${targetName} pour la compatibilité des imports
-import { ${targetName}, AlertTitle, AlertDescription } from './${targetName}';
-export { ${targetName}, AlertTitle, AlertDescription };
-export default ${targetName};
-`;
-  } else if (name === 'card') {
-    content = `// Redirecteur vers ${targetName} pour la compatibilité des imports
-import { ${targetName}, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from './${targetName}';
-export { ${targetName}, CardHeader, CardTitle, CardDescription, CardContent, CardFooter };
-export default ${targetName};
-`;
-  } else {
-    content = `// Redirecteur vers ${targetName} pour la compatibilité des imports
-import { ${targetName} } from './${targetName}';
-export { ${targetName} };
-export default ${targetName};
-`;
-  }
-  
-  fs.writeFileSync(path.join(componentsDir, `${name}.tsx`), content);
-  console.log(`Créé: ${name}.tsx -> ${targetName}.tsx`);
+  files.forEach(file => {
+    const filePath = path.join(componentsDir, file);
+    if (fs.existsSync(filePath)) {
+      try {
+        fs.unlinkSync(filePath);
+        console.log(`Supprimé: ${file} pour éviter les conflits de casse`);
+      } catch (error) {
+        console.error(`Erreur lors de la suppression de ${file}:`, error);
+      }
+    }
+  });
 }
 
-// Liste des composants à vérifier et leurs contreparties
-const components = [
-  { name: 'textarea', target: 'Textarea' },
-  { name: 'button', target: 'Button' },
-  { name: 'card', target: 'Card' },
-  { name: 'input', target: 'Input' },
-  { name: 'label', target: 'Label', create: true },
-  { name: 'alert', target: 'Alert', create: true },
-  // Composants manquants à créer
-  { name: 'table', target: 'Table', create: true },
-  { name: 'dialog', target: 'Dialog', create: true },
-  { name: 'badge', target: 'Badge', create: true },
-  { name: 'use-toast', target: 'Toast', create: true },
-];
-
-// Créer les composants manquants
-for (const component of components) {
-  const sourcePath = path.join(componentsDir, `${component.target}.tsx`);
-  const targetPath = path.join(componentsDir, `${component.name}.tsx`);
+// Fonction pour créer un stub de composant
+function createComponentStub(name, isAdvanced = false) {
+  const targetPath = path.join(componentsDir, name);
   
-  // Vérifier si le fichier cible existe déjà
   if (fs.existsSync(targetPath)) {
-    console.log(`${component.name}.tsx existe déjà, ignoré`);
-    continue;
+    console.log(`${name} existe déjà, ignoré`);
+    return;
   }
   
-  // Vérifier si le fichier source existe
-  if (fs.existsSync(sourcePath)) {
-    createRedirectorComponent(component.name, component.target);
-  } else if (component.create) {
-    // Créer un composant minimal si nécessaire
-    console.log(`Création d'un stub pour: ${component.target}.tsx`);
-    
-    let content = '';
-    
-    // Contenu par défaut selon le type de composant
-    if (component.name === 'use-toast') {
-      content = `// Stub pour use-toast.tsx 
+  let content = '';
+  
+  if (name === 'alert.tsx') {
+    content = `import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "@/lib/utils";
+
+const alertVariants = cva(
+  "relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground",
+  {
+    variants: {
+      variant: {
+        default: "bg-background text-foreground",
+        destructive:
+          "border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  }
+);
+
+const Alert = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof alertVariants>
+>(({ className, variant, ...props }, ref) => (
+  <div
+    ref={ref}
+    role="alert"
+    className={cn(alertVariants({ variant }), className)}
+    {...props}
+  />
+));
+Alert.displayName = "Alert";
+
+const AlertTitle = React.forwardRef<
+  HTMLParagraphElement,
+  React.HTMLAttributes<HTMLHeadingElement>
+>(({ className, ...props }, ref) => (
+  <h5
+    ref={ref}
+    className={cn("mb-1 font-medium leading-none tracking-tight", className)}
+    {...props}
+  />
+));
+AlertTitle.displayName = "AlertTitle";
+
+const AlertDescription = React.forwardRef<
+  HTMLParagraphElement,
+  React.HTMLAttributes<HTMLParagraphElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn("text-sm [&_p]:leading-relaxed", className)}
+    {...props}
+  />
+));
+AlertDescription.displayName = "AlertDescription";
+
+export { Alert, AlertTitle, AlertDescription };`;
+  } else if (name === 'card.tsx') {
+    content = `import React, { HTMLAttributes, forwardRef } from 'react';
+import { cn } from '@/lib/utils';
+
+export interface CardProps extends HTMLAttributes<HTMLDivElement> {}
+
+const Card = forwardRef<HTMLDivElement, CardProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          'rounded-lg border bg-card shadow-sm',
+          className
+        )}
+        {...props}
+      />
+    );
+  }
+);
+Card.displayName = 'Card';
+
+export interface CardHeaderProps extends HTMLAttributes<HTMLDivElement> {}
+
+const CardHeader = forwardRef<HTMLDivElement, CardHeaderProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <div
+        ref={ref}
+        className={cn('flex flex-col space-y-1.5 p-6', className)}
+        {...props}
+      />
+    );
+  }
+);
+CardHeader.displayName = 'CardHeader';
+
+export interface CardTitleProps extends HTMLAttributes<HTMLHeadingElement> {}
+
+const CardTitle = forwardRef<HTMLHeadingElement, CardTitleProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <h3
+        ref={ref}
+        className={cn('text-2xl font-semibold leading-none tracking-tight text-black', className)}
+        {...props}
+      />
+    );
+  }
+);
+CardTitle.displayName = 'CardTitle';
+
+export interface CardDescriptionProps extends HTMLAttributes<HTMLParagraphElement> {}
+
+const CardDescription = forwardRef<HTMLParagraphElement, CardDescriptionProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <p
+        ref={ref}
+        className={cn('text-sm text-black/70', className)}
+        {...props}
+      />
+    );
+  }
+);
+CardDescription.displayName = 'CardDescription';
+
+export interface CardContentProps extends HTMLAttributes<HTMLDivElement> {}
+
+const CardContent = forwardRef<HTMLDivElement, CardContentProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <div ref={ref} className={cn('p-6 pt-0 text-black', className)} {...props} />
+    );
+  }
+);
+CardContent.displayName = 'CardContent';
+
+export interface CardFooterProps extends HTMLAttributes<HTMLDivElement> {}
+
+const CardFooter = forwardRef<HTMLDivElement, CardFooterProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <div
+        ref={ref}
+        className={cn('flex items-center p-6 pt-0 text-black', className)}
+        {...props}
+      />
+    );
+  }
+);
+CardFooter.displayName = 'CardFooter';
+
+export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter };`;
+  } else if (name === 'use-toast.tsx') {
+    content = `// Stub pour use-toast.tsx 
 export const toast = {
   success: (message) => console.log('Toast success:', message),
   error: (message) => console.log('Toast error:', message),
@@ -79,24 +195,29 @@ export const toast = {
 };
 
 export default toast;`;
-    } else {
-      content = `// Stub composant pour ${component.target}
+  } else {
+    // Extraire le nom du composant sans l'extension
+    const componentName = path.basename(name, '.tsx');
+    // Première lettre en majuscule pour le nom du composant
+    const capitalizedName = componentName.charAt(0).toUpperCase() + componentName.slice(1);
+    
+    content = `// Stub composant pour ${capitalizedName}
 import React from 'react';
 import { cn } from '@/lib/utils';
 
-export interface ${component.target}Props {
+export interface ${capitalizedName}Props {
   children?: React.ReactNode;
   className?: string;
 }
 
-export const ${component.target}: React.FC<${component.target}Props> = ({ 
+export const ${capitalizedName}: React.FC<${capitalizedName}Props> = ({ 
   children, 
   className, 
   ...props 
 }) => {
   return (
     <div 
-      className={cn('${component.name}-component', className)} 
+      className={cn('${componentName}-component', className)} 
       {...props}
     >
       {children}
@@ -104,18 +225,33 @@ export const ${component.target}: React.FC<${component.target}Props> = ({
   );
 };
 
-export default ${component.target};`;
-    }
-    
-    fs.writeFileSync(path.join(componentsDir, `${component.target}.tsx`), content);
-    console.log(`Créé: ${component.target}.tsx (stub)`);
-    
-    // Créer aussi le redirecteur si nécessaire
-    if (component.name !== component.target.toLowerCase()) {
-      createRedirectorComponent(component.name, component.target);
-    }
+export { ${capitalizedName} };
+export default ${capitalizedName};`;
   }
+  
+  fs.writeFileSync(targetPath, content);
+  console.log(`Créé: ${name} (stub)`);
 }
+
+// Nettoyer les fichiers en majuscules d'abord
+cleanupCapitalizedFiles();
+
+// Liste des composants à générer
+const components = [
+  'textarea.tsx', 
+  'button.tsx', 
+  'card.tsx', 
+  'input.tsx', 
+  'label.tsx', 
+  'alert.tsx', 
+  'table.tsx', 
+  'dialog.tsx', 
+  'badge.tsx', 
+  'use-toast.tsx'
+];
+
+// Créer tous les composants
+components.forEach(component => createComponentStub(component));
 
 // Vérifier et créer le module next-auth
 const nextAuthDir = path.join(__dirname, '..', 'src', 'app', 'api', 'auth');
