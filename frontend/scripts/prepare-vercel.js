@@ -829,6 +829,58 @@ const Label = React.forwardRef<HTMLLabelElement, LabelProps>(({
 Label.displayName = 'Label';
 
 export { Label };`,
+
+  'date-picker.tsx': `import React from 'react';
+import { cn } from '@/lib/utils';
+
+export interface DatePickerProps extends React.HTMLAttributes<HTMLDivElement> {
+  children?: React.ReactNode;
+  className?: string;
+  value?: Date;
+  onChange?: (date: Date) => void;
+  minDate?: Date;
+  maxDate?: Date;
+  disabled?: boolean;
+  placeholder?: string;
+  format?: string;
+  showTimeSelect?: boolean;
+  timeFormat?: string;
+  timeIntervals?: number;
+}
+
+const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(({
+  children,
+  className,
+  value,
+  onChange,
+  minDate,
+  maxDate,
+  disabled,
+  placeholder = 'Select date...',
+  format = 'dd/MM/yyyy',
+  showTimeSelect,
+  timeFormat = 'HH:mm',
+  timeIntervals = 15,
+  ...props
+}, ref) => {
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        'relative inline-block w-full',
+        disabled && 'opacity-50 cursor-not-allowed',
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+});
+
+DatePicker.displayName = 'DatePicker';
+
+export { DatePicker };`,
 };
 
 // Fonction pour créer un stub de composant
@@ -860,17 +912,17 @@ export interface ${capitalizedName}Props extends React.HTMLAttributes<HTMLDivEle
 }
 
 const ${capitalizedName} = React.forwardRef<HTMLDivElement, ${capitalizedName}Props>(({
-  children,
-  className,
+  children, 
+  className, 
   variant,
   size,
   disabled,
-  ...props
+  ...props 
 }, ref) => {
   return (
-    <div
+    <div 
       ref={ref}
-      className={cn('${componentName}-component', className)}
+      className={cn('${componentName}-component', className)} 
       aria-disabled={disabled}
       {...props}
     >
