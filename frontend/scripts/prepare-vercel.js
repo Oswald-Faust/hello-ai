@@ -195,6 +195,38 @@ export const toast = {
 };
 
 export default toast;`;
+  } else if (name === 'label.tsx') {
+    // Création spécifique pour le composant Label avec htmlFor
+    content = `import React from 'react';
+import { cn } from '@/lib/utils';
+
+export interface LabelProps extends React.LabelHTMLAttributes<HTMLLabelElement> {
+  children?: React.ReactNode;
+  className?: string;
+  htmlFor?: string;
+}
+
+const Label = React.forwardRef<HTMLLabelElement, LabelProps>(({ 
+  children, 
+  className,
+  htmlFor,
+  ...props 
+}, ref) => {
+  return (
+    <label 
+      ref={ref}
+      htmlFor={htmlFor}
+      className={cn('text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70', className)} 
+      {...props}
+    >
+      {children}
+    </label>
+  );
+});
+
+Label.displayName = 'Label';
+
+export { Label };`;
   } else {
     // Extraire le nom du composant sans l'extension
     const componentName = path.basename(name, '.tsx');
