@@ -190,6 +190,27 @@ class AuthService {
       return false;
     }
   }
+
+  /**
+   * Met à jour le profil de l'utilisateur
+   * @param userData Les données utilisateur à mettre à jour
+   * @returns Les données utilisateur mises à jour
+   */
+  async updateProfile(userData: Partial<UserRegistration>): Promise<{ user: any }> {
+    try {
+      console.log('[AUTH SERVICE] Mise à jour du profil utilisateur');
+      const response = await api.put('/auth/profile', userData);
+      
+      if (response.data.user) {
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+      }
+      
+      return response.data;
+    } catch (error: any) {
+      console.error('[AUTH SERVICE] Erreur lors de la mise à jour du profil:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || 'Erreur lors de la mise à jour du profil');
+    }
+  }
 }
 
 // Exporter une instance unique du service

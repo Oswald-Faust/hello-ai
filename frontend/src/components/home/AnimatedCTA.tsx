@@ -3,7 +3,7 @@
 import React, { useRef, useState } from 'react';
 import Link from 'next/link';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import useMouseParallax from '@/hooks/useMouseParallax';
 
 const AnimatedCTA = () => {

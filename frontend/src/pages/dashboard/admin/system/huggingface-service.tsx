@@ -6,12 +6,12 @@ import {
   CardDescription, 
   CardHeader, 
   CardTitle
-} from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
-import { Label } from '@/components/ui/Label';
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/Textarea';
+import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, Save, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 

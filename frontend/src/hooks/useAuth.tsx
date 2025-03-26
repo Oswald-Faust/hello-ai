@@ -18,6 +18,7 @@ export type AuthContextType = {
   register: (userData: UserRegistration) => Promise<void>;
   registerComplete: (registrationData: RegistrationData) => Promise<void>;
   logout: () => void;
+  updateProfile: (userData: Partial<User>) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -190,6 +191,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     window.location.replace('/login');
   };
 
+  const updateProfile = async (userData: Partial<User>): Promise<void> => {
+    try {
+      setError(null);
+      setLoading(true);
+      
+      if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
+        // En mode démo, mettre à jour localement
+        if (user) {
+          const updatedUser = { ...user, ...userData };
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          setUser(updatedUser);
+        }
+      } else {
+        // Utiliser le service d'authentification réel
+        const response = await authService.updateProfile(userData);
+        setUser(response.user);
+      }
+    } catch (err: any) {
+      console.error('[AUTH HOOK] Erreur lors de la mise à jour du profil:', err);
+      const errorMessage = err.message || 'Erreur lors de la mise à jour du profil';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -199,7 +227,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         register,
         registerComplete,
-        logout
+        logout,
+        updateProfile
       }}
     >
       {children}

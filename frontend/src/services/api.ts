@@ -12,10 +12,13 @@ const getRequestKey = (config: AxiosRequestConfig) => {
 };
 
 // Créer une instance axios avec la configuration de base
-const api = axios.create({
+export const api = axios.create({
   baseURL: API_URL,
   withCredentials: true,
   timeout: 30000, // Augmenter le timeout pour donner plus de temps aux requêtes
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
 // Intercepteur pour les requêtes
@@ -180,7 +183,7 @@ api.interceptors.response.use(
 );
 
 // Ajouter une fonction de récupération en cas d'échec avec retry
-export const withRetry = async (fn: () => Promise<any>, retries = 3, delay = 500) => {
+export const withRetry = async <T>(fn: () => Promise<T>, retries = 3, delay = 500): Promise<T> => {
   try {
     return await fn();
   } catch (error) {
@@ -190,8 +193,9 @@ export const withRetry = async (fn: () => Promise<any>, retries = 3, delay = 500
     
     console.log(`[API] Tentative échouée, nouvel essai dans ${delay}ms. Essais restants: ${retries}`);
     await new Promise(resolve => setTimeout(resolve, delay));
-    return withRetry(fn, retries - 1, delay * 1.5); // Augmenter le délai à chaque tentative
+    return withRetry(fn, retries - 1, delay * 1.5);
   }
 };
 
+// Ajouter une exportation par défaut
 export default api; 

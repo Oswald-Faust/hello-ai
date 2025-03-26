@@ -1,4 +1,6 @@
-import { NextPage } from 'next';
+import type { NextPage } from 'next';
+import type { ReactElement } from 'react';
+import type { NextPageWithLayout } from '@/types/next';
 import { useRouter } from 'next/router';
 import React from 'react';
 import UserLayout from '@/components/layouts/UserLayout';
@@ -52,7 +54,7 @@ const SettingCard: React.FC<{
   );
 };
 
-const SettingsPage: NextPage = () => {
+const SettingsPage: NextPageWithLayout = () => {
   return (
     <>
       <Head>

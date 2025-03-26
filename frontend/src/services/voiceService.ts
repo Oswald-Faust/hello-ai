@@ -5,7 +5,7 @@ export interface Voice {
   name: string;
   gender: 'male' | 'female';
   language: string;
-  provider: 'gtts';
+  provider: 'gtts' | 'twilio';
 }
 
 export interface VoiceTestResponse {

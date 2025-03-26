@@ -1,4 +1,5 @@
-import { NextPage } from 'next';
+import type { NextPage } from 'next';
+import type { ReactElement, ReactNode } from 'react';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
@@ -58,6 +59,7 @@ import {
   Legend,
 } from 'chart.js';
 import { Line, Bar, Pie } from 'react-chartjs-2';
+import type { NextPageWithLayout } from '@/types/next';
 
 // Enregistrer les composants ChartJS
 ChartJS.register(
@@ -72,7 +74,7 @@ ChartJS.register(
   Legend
 );
 
-const CallMonitoringPage: NextPage = () => {
+const CallMonitoringPage: NextPageWithLayout = () => {
   const router = useRouter();
   const toast = useToast();
   const { company, loading: companyLoading } = useCompany();

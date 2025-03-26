@@ -197,7 +197,7 @@ export function ToastsProvider({ children }: { children: React.ReactNode }) {
         <Toast
           key={toast.id}
           variant={toast.variant}
-          onOpenChange={(open) => {
+          onOpenChange={(open: boolean) => {
             if (!open) dismiss(toast.id);
           }}
         >

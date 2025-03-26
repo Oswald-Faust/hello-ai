@@ -5,8 +5,8 @@ import { Mic, MicOff, Play, Send, Volume2, AlertCircle, Loader2 } from 'lucide-r
 import { toast } from 'react-hot-toast';
 
 import UserLayout from '@/components/layouts/UserLayout';
-import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Spinner } from '@/components/ui/Spinner';
 import { useAuth } from '@/hooks/useAuth';

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { NextPage } from 'next';
+import type { NextPage } from 'next';
+import type { ReactElement } from 'react';
+import type { NextPageWithLayout } from '@/types/next';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import UserLayout from '@/components/layouts/UserLayout';
@@ -14,8 +16,8 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
@@ -32,7 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Input } from '@/components/ui/Input';
+import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -46,7 +48,7 @@ interface VoiceAssistantUpdate {
     gender: 'male' | 'female';
     language: string;
     speed: number;
-    provider: 'gtts';
+    provider: 'gtts' | 'twilio';
     format: 'mp3';
   };
   greetings?: {
@@ -74,7 +76,7 @@ interface ExtendedVoiceAssistant {
     gender: 'male' | 'female';
     language: string;
     speed: number;
-    provider: 'gtts';
+    provider: 'gtts' | 'twilio';
     format: 'mp3';
   };
   greetings?: {
@@ -101,42 +103,15 @@ type ExtendedCompany = Omit<Company, 'voiceAssistant'> & {
   voiceAssistant?: ExtendedVoiceAssistant;
 };
 
-// Mettre à jour le type VoiceSettingsFormValues pour inclure voiceId
-interface VoiceSettingsFormValues {
-  voice: {
-    gender: 'male' | 'female';
-    language: string;
-    speed: number;
-    provider: 'gtts';
-    format: 'mp3';
-    voiceId?: string;
-  };
-  greetings: {
-    main: string;
-    outOfHours?: string;
-    waiting?: string;
-  };
-  scenarios: {
-    information?: string;
-    transfer?: string;
-    ending?: string;
-  };
-  companyInfo: {
-    products?: string[];
-    services?: string[];
-    faq?: Array<{ question: string; answer: string }>;
-    team?: Array<{ name: string; role: string; expertise: string[] }>;
-  };
-}
-
 // Schéma de validation pour le formulaire
 const voiceSettingsSchema = z.object({
   voice: z.object({
     gender: z.enum(['male', 'female']),
     language: z.string().min(1, { message: 'Veuillez sélectionner une langue' }),
     speed: z.number().min(0.5).max(2),
-    provider: z.literal('gtts'),
+    provider: z.enum(['gtts', 'twilio']),
     format: z.literal('mp3'),
+    voiceId: z.string().optional(),
   }),
   greetings: z.object({
     main: z.string().min(1, { message: 'Veuillez fournir un message d\'accueil' }),
@@ -149,23 +124,23 @@ const voiceSettingsSchema = z.object({
     ending: z.string().optional(),
   }),
   companyInfo: z.object({
-    products: z.array(z.string()).optional(),
-    services: z.array(z.string()).optional(),
+    products: z.array(z.string()).default([]),
+    services: z.array(z.string()).default([]),
     faq: z.array(z.object({
       question: z.string(),
       answer: z.string()
-    })).optional(),
+    })).default([]),
     team: z.array(z.object({
       name: z.string(),
       role: z.string(),
       expertise: z.array(z.string())
-    })).optional(),
-  }).optional(),
+    })).default([]),
+  }),
 });
 
-type VoiceSettingsFormValues = z.infer<typeof voiceSettingsSchema>;
+export type VoiceSettingsFormValues = z.infer<typeof voiceSettingsSchema>;
 
-const VoiceSettingsPage: NextPage = () => {
+const VoiceSettingsPage: NextPageWithLayout = () => {
   // Utiliser un type plus spécifique pour updateVoiceAssistant qui accepte notre type VoiceAssistantUpdate
   const { company: originalCompany, loading, error, updateVoiceAssistant: updateVoiceAssistantOriginal } = useCompany();
   // Convertir le type vers notre type étendu
@@ -214,7 +189,7 @@ const VoiceSettingsPage: NextPage = () => {
       gender: company?.voiceAssistant?.voice?.gender || 'female',
       language: company?.voiceAssistant?.voice?.language || 'fr',
       speed: company?.voiceAssistant?.voice?.speed || 1.0,
-      provider: 'gtts',
+      provider: company?.voiceAssistant?.voice?.provider || 'gtts',
       format: 'mp3',
     },
     greetings: {
@@ -249,7 +224,7 @@ const VoiceSettingsPage: NextPage = () => {
           gender: company.voiceAssistant.voice?.gender || 'female',
           language: company.voiceAssistant.voice?.language || 'fr',
           speed: company.voiceAssistant.voice?.speed || 1.0,
-          provider: 'gtts',
+          provider: company.voiceAssistant.voice?.provider || 'gtts',
           format: 'mp3',
         },
         greetings: {
@@ -300,66 +275,58 @@ const VoiceSettingsPage: NextPage = () => {
     let controller = new AbortController();
     let isLoading = false;
     
-    const fetchVoices = async (provider: string) => {
-      // Éviter les appels multiples si déjà en cours de chargement
-      if (isLoading) return;
-      
-      try {
-        isLoading = true;
-        
-        // Annuler les requêtes précédentes
-        controller.abort();
-        controller = new AbortController();
-        
-        if (isMounted) setLoadingVoices(true);
-        
-        // Utilisez d'abord les voix recommandées comme fallback pour éviter un état vide
-        if (provider === 'gtts') {
-          const recommendedVoices = voiceService.getRecommendedVoices() as Voice[];
-          setVoices(recommendedVoices);
-          setLoadingVoices(false);
-          return;
-        }
+    const providerValue = form.getValues().voice.provider;
+    if (providerValue) {
+      void (async () => {
+        if (isLoading) return;
         
         try {
-          // Essayez de charger les voix depuis l'API avec un délai réduit
-          const response = await Promise.race([
-            voiceService.getAvailableVoices(provider),
-            new Promise<Voice[]>((_, reject) => 
-              setTimeout(() => reject(new Error('Délai dépassé')), 5000)
-            )
-          ]) as Voice[];
+          isLoading = true;
+          controller.abort();
+          controller = new AbortController();
           
-          if (isMounted) {
-            setVoices(response || []);
-            setLoadingVoices(false);
+          if (isMounted) setLoadingVoices(true);
+          
+          if (providerValue === 'gtts') {
+            const recommendedVoices = voiceService.getRecommendedVoices();
+            if (isMounted) {
+              setVoices(recommendedVoices);
+              setLoadingVoices(false);
+            }
+            return;
+          }
+          
+          try {
+            const response = await Promise.race([
+              voiceService.getAvailableVoices(),
+              new Promise<Voice[]>((_, reject) => 
+                setTimeout(() => reject(new Error('Délai dépassé')), 5000)
+              )
+            ]);
+            
+            if (isMounted) {
+              setVoices(response || []);
+              setLoadingVoices(false);
+            }
+          } catch (error) {
+            if (isMounted) {
+              const fallbackVoices = voiceService.getRecommendedVoices();
+              setVoices(fallbackVoices);
+              setLoadingVoices(false);
+              
+              toast({
+                title: 'Note',
+                description: 'Nous utilisons une sélection de voix recommandées suite à un problème de connexion.',
+                variant: 'default',
+              });
+            }
           }
         } catch (error) {
-          if (isMounted) {
-            // En cas d'erreur, utilisez les voix recommandées comme fallback
-            const fallbackVoices = voiceService.getRecommendedVoices() as Voice[];
-            setVoices(fallbackVoices);
-            setLoadingVoices(false);
-            
-            toast({
-              title: 'Note',
-              description: 'Nous utilisons une sélection de voix recommandées suite à un problème de connexion.',
-              variant: 'default',
-            });
-          }
+          console.error('Erreur lors du chargement des voix:', error);
+        } finally {
+          isLoading = false;
         }
-      } catch (error) {
-        console.error('Erreur lors du chargement des voix:', error);
-      } finally {
-        isLoading = false;
-      }
-    };
-
-    // Utiliser une valeur stable pour le provider
-    const providerValue = form.getValues().voice.provider;
-    
-    if (providerValue) {
-      fetchVoices(providerValue);
+      })();
     }
     
     return () => {
@@ -1688,5 +1655,9 @@ const VoiceSettingsPage: NextPage = () => {
     </UserLayout>
   );
 };
+
+VoiceSettingsPage.getLayout = (page: ReactElement) => (
+  <UserLayout>{page}</UserLayout>
+);
 
 export default VoiceSettingsPage; 

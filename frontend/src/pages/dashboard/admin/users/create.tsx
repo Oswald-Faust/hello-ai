@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { NextPage } from 'next';
 import { useRouter } from 'next/router';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { User, Mail, Lock, Building, Phone, ArrowLeft, Save } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import MainLayout from '@/components/layout/MainLayout';
 import { api } from '@/utils/api';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/Label';
-import { Alert } from '@/components/ui/Alert';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 interface Company {
   _id: string;
@@ -171,12 +171,10 @@ const CreateUser: NextPage = () => {
         </div>
         
         {submitError && (
-          <Alert 
-            variant="error" 
-            title="Erreur" 
-            message={submitError}
-            className="mb-6"
-          />
+          <Alert variant="destructive" className="mb-6">
+            <AlertTitle>Erreur</AlertTitle>
+            <AlertDescription>{submitError}</AlertDescription>
+          </Alert>
         )}
         
         <Card>

@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { NextPage } from 'next';
 import { useRouter } from 'next/router';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Building, Mail, Phone, Globe, ArrowLeft, Save, MapPin } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { api } from '@/utils/api';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/Label';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/Alert';
-import { Textarea } from '@/components/ui/Textarea';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Textarea } from '@/components/ui/textarea';
 
 interface FormDataType {
   name: string;

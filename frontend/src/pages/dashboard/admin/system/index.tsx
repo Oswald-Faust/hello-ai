@@ -2,7 +2,7 @@ import React from 'react';
 import { Wrench, Languages, Mic, Bot } from 'lucide-react';
 import AdminLayout from '@/components/layouts/AdminLayout';
 import Link from 'next/link';
-import { Card } from '@/components/ui/Card';
+import { Card } from '@/components/ui/card';
 
 const SystemDashboard = () => {
   const services = [

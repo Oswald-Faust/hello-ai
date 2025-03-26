@@ -4,8 +4,8 @@ import { useRouter } from 'next/router';
 import { useAuth } from '@/hooks/useAuth';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { Database, Users, Building2, Phone, Settings, Plus, ChevronRight } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 const ModelsAdminPage: NextPage = () => {
   const { user } = useAuth();

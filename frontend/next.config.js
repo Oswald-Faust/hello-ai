@@ -58,6 +58,10 @@ const nextConfig = {
       },
     ],
   },
+  output: 'standalone',
+  experimental: {},
+  // Désactiver la génération statique pour toutes les pages
+  staticPageGenerationTimeout: 0
 };
 
 module.exports = nextConfig; 

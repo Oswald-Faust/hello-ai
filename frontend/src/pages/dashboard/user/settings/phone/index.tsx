@@ -1,4 +1,6 @@
-import { NextPage } from 'next';
+import type { NextPage } from 'next';
+import type { ReactElement } from 'react';
+import type { NextPageWithLayout } from '@/types/next';
 import { useRouter } from 'next/router';
 import React, { useState, useEffect } from 'react';
 import UserLayout from '@/components/layouts/UserLayout';
@@ -29,10 +31,10 @@ import Head from 'next/head';
 import { useCompany } from '@/hooks/useCompany';
 import { api } from '@/services/api';
 
-const PhoneNumberPage: NextPage = () => {
+const PhoneNumberPage: NextPageWithLayout = () => {
   const router = useRouter();
   const toast = useToast();
-  const { company, loading: companyLoading, mutate } = useCompany();
+  const { company, loading: companyLoading, refreshCompany } = useCompany();
   
   const [provider, setProvider] = useState<string>('fonoster');
   const [country, setCountry] = useState<string>('FR');
@@ -120,7 +122,7 @@ const PhoneNumberPage: NextPage = () => {
       });
       
       setStep(3);
-      mutate(); // Rafraîchir les données de l'entreprise
+      refreshCompany(); // Rafraîchir les données de l'entreprise
     } catch (error) {
       console.error('Erreur lors de l\'achat du numéro:', error);
       toast({

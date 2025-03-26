@@ -4,11 +4,11 @@ import { useRouter } from 'next/router';
 import { useAuth } from '@/hooks/useAuth';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { ArrowLeft, Plus, Edit, Trash2, Users, Info, Lock, Mail, Phone, Building2, Settings, Eye, EyeOff, Save } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/Label';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/Alert';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 type FieldType = 'string' | 'number' | 'boolean' | 'date' | 'email' | 'password' | 'reference';
 

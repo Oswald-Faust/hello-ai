@@ -20,7 +20,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 
 interface UserLayoutProps {
   children: ReactNode;
