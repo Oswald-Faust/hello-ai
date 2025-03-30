@@ -127,8 +127,8 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
   fullWidth?: boolean;
   readOnly?: boolean;
   sizeVariant?: 'default' | 'sm' | 'lg';
-  prefix?: React.ReactNode;
-  suffix?: React.ReactNode;
+  prefixElement?: React.ReactNode;
+  suffixElement?: React.ReactNode;
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(({
@@ -147,8 +147,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
   fullWidth,
   readOnly,
   sizeVariant = 'default',
-  prefix,
-  suffix,
+  prefixElement,
+  suffixElement,
   ...props
 }, ref) => {
   const getSizeClasses = (size: string): string => {
