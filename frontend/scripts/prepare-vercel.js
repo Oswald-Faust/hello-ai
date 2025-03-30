@@ -971,6 +971,29 @@ if (!fs.existsSync(componentsDir)) {
 // Créer tous les composants
 components.forEach(component => createComponentStub(component));
 
+// Créer des fichiers pour résoudre les problèmes de casse
+function createCaseInsensitiveAliases() {
+  // Liste des composants qui sont importés avec une majuscule 
+  // mais qui existent en minuscule
+  const caseProblems = [
+    { minuscule: 'toast.tsx', majuscule: 'Toast.tsx' }
+  ];
+
+  caseProblems.forEach(({ minuscule, majuscule }) => {
+    const minusculePath = path.join(componentsDir, minuscule);
+    const majusculePath = path.join(componentsDir, majuscule);
+
+    if (fs.existsSync(minusculePath) && !fs.existsSync(majusculePath)) {
+      // Créer un fichier d'alias qui réexporte le composant
+      const content = `// Réexportation pour résoudre des problèmes de casse
+export * from './${minuscule.replace('.tsx', '')}';
+`;
+      fs.writeFileSync(majusculePath, content);
+      console.log(`Créé: ${majuscule} (alias pour résoudre les problèmes de casse)`);
+    }
+  });
+}
+
 // Vérifier et créer le module next-auth
 const nextAuthDir = path.join(__dirname, '..', 'src', 'app', 'api', 'auth');
 if (!fs.existsSync(nextAuthDir)) {
@@ -1016,5 +1039,8 @@ export async function POST() {
   fs.writeFileSync(nextAuthRoutePath, nextAuthRouteContent);
   console.log(`Créé: [...nextauth]/route.ts (stub)`);
 }
+
+// Créer les alias pour résoudre les problèmes de casse
+createCaseInsensitiveAliases();
 
 console.log('Préparation terminée!'); 
